@@ -19,6 +19,7 @@
         name = "dev";
 
         buildInputs = with pkgs; [
+          jq
           cjson
           nix-eval-jobs
 
@@ -51,6 +52,7 @@
         ];
         buildInputs = with pkgs; [
           cjson
+          nix-eval-jobs
         ];
 
         postInstall = ''

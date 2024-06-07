@@ -11,6 +11,7 @@ project(
 
 add_project_arguments(
 	[
+                '-D_POSIX_C_SOURCE=200809L',
 		'-Wvla',
 	],
 	language: 'c',

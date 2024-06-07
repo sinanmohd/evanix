@@ -1,6 +1,10 @@
 e = executable(
 	'evanix',
-        'evanix.c',
+        [
+		'evanix.c',
+		'jobs.c',
+		'util.c',
+	],
 
 	include_directories: evanix_inc,
 	dependencies: cjson_dep,
