@@ -1,0 +1,14 @@
+BasedOnStyle: LLVM
+BreakBeforeBraces: Linux
+IndentCaseLabels: false
+
+AlignConsecutiveMacros: true
+AllowShortIfStatementsOnASingleLine: false
+
+ContinuationIndentWidth: 8
+IndentWidth: 8
+TabWidth: 8
+UseTab: Always
+
+ForEachMacros:
+  - 'LIST_FOREACH'
