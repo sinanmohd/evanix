@@ -20,6 +20,7 @@
 
         buildInputs = with pkgs; [
           cjson
+          nix-eval-jobs
 
           pkg-config
           meson
@@ -46,10 +47,16 @@
           meson
           ninja
           pkg-config
+          makeWrapper
         ];
         buildInputs = with pkgs; [
           cjson
         ];
+
+        postInstall = ''
+          wrapProgram $out/bin/evanix \
+              --prefix PATH : ${lib.makeBinPath [ pkgs.nix-eval-jobs ]}
+        '';
 
         meta = {
           homepage = "https://git.sinanmohd.com/evanix";
