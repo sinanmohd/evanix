@@ -9,7 +9,7 @@ struct output {
 
 LIST_HEAD(job_dlist, job);
 struct job {
-	char *drv_path, *name;
+	char *name, *drv_path;
 	struct output_dlist outputs;
 	struct job_dlist deps;
 

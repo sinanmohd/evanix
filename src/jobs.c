@@ -9,12 +9,13 @@
 #include "util.h"
 
 static int job_output_insert(struct job *j, char *name, char *store_path);
+static void output_free(struct output *output);
 
 int job_read(FILE *stream, struct job **job)
 {
 	int ret;
-	cJSON *root, *temp, *input_drvs, *array;
 	struct job *dep_job;
+	cJSON *root, *temp, *input_drvs, *array;
 	char *name = NULL;
 	char *out_name = NULL;
 	char *drv_path = NULL;
@@ -82,8 +83,9 @@ int job_read(FILE *stream, struct job **job)
 			}
 		}
 
-		LIST_INSERT_HEAD(&(*job)->deps, dep_job, dlist);
 		drv_path = NULL;
+		out_name = NULL;
+		LIST_INSERT_HEAD(&(*job)->deps, dep_job, dlist);
 	}
 
 out_free:
@@ -93,11 +95,12 @@ out_free:
 		print_err("%s", "Invalid JSON");
 		free(name);
 		free(drv_path);
+		free(out_name);
 	}
 	return ret;
 }
 
-void output_free(struct output *output)
+static void output_free(struct output *output)
 {
 	if (output == NULL)
 		return;
@@ -118,12 +121,14 @@ void job_free(struct job *job)
 
 	free(job->name);
 	free(job->drv_path);
-	free(job);
+
 	LIST_FOREACH (o, &job->outputs, dlist)
 		output_free(o);
 
 	LIST_FOREACH (j, &job->deps, dlist)
 		job_free(j);
+
+	free(job);
 }
 
 static int job_output_insert(struct job *j, char *name, char *store_path)
@@ -148,7 +153,7 @@ int job_new(struct job **j, char *name, char *drv_path)
 	struct job *job;
 
 	job = malloc(sizeof(*job));
-	if (*j == NULL) {
+	if (job == NULL) {
 		print_err("%s", strerror(errno));
 		return -errno;
 	}
