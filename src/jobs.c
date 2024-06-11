@@ -15,10 +15,11 @@ int job_read(FILE *stream, struct job **job)
 {
 	int ret;
 	struct job *dep_job;
-	cJSON *root, *temp, *input_drvs, *array;
+	cJSON *root, *temp, *input_drvs, *array, *outputs;
 	char *name = NULL;
-	char *out_name = NULL;
 	char *drv_path = NULL;
+	char *out_name = NULL;
+	char *out_path = NULL;
 
 	ret = json_streaming_read(stream, &root);
 	if (ret < 0)
@@ -75,6 +76,12 @@ int job_read(FILE *stream, struct job **job)
 
 		for (; array != NULL; array = array->next) {
 			out_name = strdup(array->string);
+			if (out_name == NULL) {
+				ret = -EPERM;
+				job_free(*job);
+				goto out_free;
+			}
+
 			ret = job_output_insert(dep_job, out_name, NULL);
 			if (ret < 0) {
 				job_free(*job);
@@ -86,6 +93,32 @@ int job_read(FILE *stream, struct job **job)
 		drv_path = NULL;
 		out_name = NULL;
 		LIST_INSERT_HEAD(&(*job)->deps, dep_job, dlist);
+	}
+
+	outputs = cJSON_GetObjectItemCaseSensitive(root, "outputs");
+	for (temp = outputs; temp != NULL; temp = temp->next) {
+		out_name = strdup(temp->string);
+		if (out_name == NULL) {
+			ret = -EPERM;
+			job_free(*job);
+			goto out_free;
+		}
+
+		out_path = strdup(temp->valuestring);
+		if (out_path == NULL) {
+			ret = -EPERM;
+			job_free(*job);
+			goto out_free;
+		}
+
+		ret = job_output_insert(*job, out_name, out_path);
+		free(out_path);
+		if (ret < 0) {
+			ret = -EPERM;
+			job_free(*job);
+			goto out_free;
+		}
+
 	}
 
 out_free:
