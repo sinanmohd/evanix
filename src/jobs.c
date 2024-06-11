@@ -8,18 +8,144 @@
 #include "jobs.h"
 #include "util.h"
 
-static int job_output_insert(struct job *j, char *name, char *store_path);
 static void output_free(struct output *output);
+static int job_output_insert(struct job *j, char *name, char *store_path);
+static int job_read_inputdrvs(struct job *job, cJSON *input_drvs);
+static int job_read_outputs(struct job *job, cJSON *outputs);
+
+static void output_free(struct output *output)
+{
+	if (output == NULL)
+		return;
+
+	free(output->name);
+	free(output->store_path);
+
+	free(output);
+}
+
+static int job_output_insert(struct job *j, char *name, char *store_path)
+{
+	struct output *o;
+
+	o = malloc(sizeof(*o));
+	if (o == NULL) {
+		print_err("%s", strerror(errno));
+		return -errno;
+	}
+
+	o->name = name;
+	o->store_path = store_path;
+	LIST_INSERT_HEAD(&j->outputs, o, dlist);
+
+	return 0;
+}
+
+static int job_read_inputdrvs(struct job *job, cJSON *input_drvs)
+{
+	cJSON *array;
+
+	int ret = 0;
+	struct job *dep_job = NULL;
+	char *drv_path = NULL;
+	char *out_name = NULL;
+
+	for (cJSON *i = input_drvs; i != NULL; i = i->next) {
+		array = cJSON_GetObjectItemCaseSensitive(i, i->string);
+		if (!cJSON_IsArray(array)) {
+			ret = -EPERM;
+			goto out_free;
+		}
+
+		drv_path = strdup(i->string);
+		if (drv_path == NULL) {
+			ret = -EPERM;
+			goto out_free;
+		}
+
+		ret = job_new(&dep_job, NULL, drv_path);
+		if (ret < 0) {
+			ret = -EPERM;
+			goto out_free;
+		}
+
+		for (; array != NULL; array = array->next) {
+			out_name = strdup(array->string);
+			if (out_name == NULL) {
+				ret = -EPERM;
+				goto out_free;
+			}
+
+			ret = job_output_insert(dep_job, out_name, NULL);
+			if (ret < 0) {
+				job_free(dep_job);
+				goto out_free;
+			}
+		}
+
+		drv_path = NULL;
+		out_name = NULL;
+		dep_job = NULL;
+
+		LIST_INSERT_HEAD(&job->deps, dep_job, dlist);
+	}
+
+out_free:
+	if (ret < 0) {
+		job_free(dep_job);
+		free(drv_path);
+		free(out_name);
+	}
+
+	return ret;
+}
+
+static int job_read_outputs(struct job *job, cJSON *outputs)
+{
+	int ret = 0;
+	char *out_name = NULL;
+	char *out_path = NULL;
+
+	for (cJSON *i = outputs; i != NULL; i = i->next) {
+		out_name = strdup(i->string);
+		if (out_name == NULL) {
+			ret = -EPERM;
+			goto out_free;
+		}
+
+		out_path = strdup(i->valuestring);
+		if (out_path == NULL) {
+			ret = -EPERM;
+			goto out_free;
+		}
+
+		ret = job_output_insert(job, out_name, out_path);
+		if (ret < 0) {
+			ret = -EPERM;
+			goto out_free;
+		}
+
+		out_path = NULL;
+		out_name = NULL;
+	}
+
+out_free:
+	if (ret < 0) {
+		free(out_name);
+		free(out_path);
+	}
+
+	return 0;
+}
 
 int job_read(FILE *stream, struct job **job)
 {
-	int ret;
-	struct job *dep_job;
-	cJSON *root, *temp, *input_drvs, *array, *outputs;
+	cJSON *temp;
+
+	int ret = 0;
+	cJSON *root = NULL;
 	char *name = NULL;
 	char *drv_path = NULL;
-	char *out_name = NULL;
-	char *out_path = NULL;
 
 	ret = json_streaming_read(stream, &root);
 	if (ret < 0)
@@ -51,97 +177,34 @@ int job_read(FILE *stream, struct job **job)
 	if (ret < 0)
 		goto out_free;
 
-	input_drvs = cJSON_GetObjectItemCaseSensitive(root, "inputDrvs");
-	for (temp = input_drvs; temp != NULL; temp = temp->next) {
-		array = cJSON_GetObjectItemCaseSensitive(temp, temp->string);
-		if (!cJSON_IsArray(array)) {
-			ret = -EPERM;
-			job_free(*job);
-			goto out_free;
-		}
-
-		drv_path = strdup(temp->string);
-		if (drv_path == NULL) {
-			ret = -EPERM;
-			job_free(*job);
-			goto out_free;
-		}
-
-		ret = job_new(&dep_job, NULL, drv_path);
-		if (ret < 0) {
-			ret = -EPERM;
-			job_free(*job);
-			goto out_free;
-		}
-
-		for (; array != NULL; array = array->next) {
-			out_name = strdup(array->string);
-			if (out_name == NULL) {
-				ret = -EPERM;
-				job_free(*job);
-				goto out_free;
-			}
-
-			ret = job_output_insert(dep_job, out_name, NULL);
-			if (ret < 0) {
-				job_free(*job);
-				job_free(dep_job);
-				goto out_free;
-			}
-		}
-
-		drv_path = NULL;
-		out_name = NULL;
-		LIST_INSERT_HEAD(&(*job)->deps, dep_job, dlist);
+	temp = cJSON_GetObjectItemCaseSensitive(root, "inputDrvs");
+	if (!cJSON_IsObject(temp)) {
+		ret = -EPERM;
+		goto out_free;
 	}
+	ret = job_read_inputdrvs(*job, temp);
+	if (ret < 0)
+		goto out_free;
 
-	outputs = cJSON_GetObjectItemCaseSensitive(root, "outputs");
-	for (temp = outputs; temp != NULL; temp = temp->next) {
-		out_name = strdup(temp->string);
-		if (out_name == NULL) {
-			ret = -EPERM;
-			job_free(*job);
-			goto out_free;
-		}
-
-		out_path = strdup(temp->valuestring);
-		if (out_path == NULL) {
-			ret = -EPERM;
-			job_free(*job);
-			goto out_free;
-		}
-
-		ret = job_output_insert(*job, out_name, out_path);
-		free(out_path);
-		if (ret < 0) {
-			ret = -EPERM;
-			job_free(*job);
-			goto out_free;
-		}
-
+	temp = cJSON_GetObjectItemCaseSensitive(root, "outputs");
+	if (!cJSON_IsObject(temp)) {
+		ret = -EPERM;
+		goto out_free;
 	}
+	ret = job_read_outputs(*job, temp);
+	if (ret < 0)
+		goto out_free;
 
 out_free:
 	cJSON_Delete(root);
-
 	if (ret < 0) {
 		print_err("%s", "Invalid JSON");
+
 		free(name);
 		free(drv_path);
-		free(out_name);
 	}
+
 	return ret;
-}
-
-static void output_free(struct output *output)
-{
-	if (output == NULL)
-		return;
-
-	free(output->name);
-	free(output->store_path);
-
-	free(output);
 }
 
 void job_free(struct job *job)
@@ -162,23 +225,6 @@ void job_free(struct job *job)
 		job_free(j);
 
 	free(job);
-}
-
-static int job_output_insert(struct job *j, char *name, char *store_path)
-{
-	struct output *o;
-
-	o = malloc(sizeof(*o));
-	if (o == NULL) {
-		print_err("%s", strerror(errno));
-		return -errno;
-	}
-
-	o->name = name;
-	o->store_path = store_path;
-	LIST_INSERT_HEAD(&j->outputs, o, dlist);
-
-	return 0;
 }
 
 int job_new(struct job **j, char *name, char *drv_path)
