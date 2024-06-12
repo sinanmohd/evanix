@@ -252,6 +252,7 @@ int jobs_init(FILE **stream)
 
 	/* TODO: proproperly handle args */
 	char *const args[] = {
+		"nix-eval-jobs",
 		"--flake",
 		"github:sinanmohd/evanix#packages.x86_64-linux.evanix",
 	};
