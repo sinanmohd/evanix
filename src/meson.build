@@ -4,6 +4,7 @@ e = executable(
 		'evanix.c',
 		'jobs.c',
 		'util.c',
+		'queue.c',
 	],
 
 	include_directories: evanix_inc,

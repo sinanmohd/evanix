@@ -12,3 +12,4 @@ UseTab: Always
 
 ForEachMacros:
   - 'LIST_FOREACH'
+  - 'CIRCLEQ_FOREACH'

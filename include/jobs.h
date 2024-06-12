@@ -8,15 +8,18 @@ struct output {
 };
 
 LIST_HEAD(job_dlist, job);
+CIRCLEQ_HEAD(job_clist, job);
 struct job {
 	char *name, *drv_path;
 	struct output_dlist outputs;
 	struct job_dlist deps;
 
+	/* TODO: replace dlist with clist jobs.c */
 	LIST_ENTRY(job) dlist;
+	CIRCLEQ_ENTRY(job) clist;
 };
 
 int jobs_init(FILE **stream);
 int job_new(struct job **j, char *name, char *drv_path);
 void job_free(struct job *j);
-int jobs_read(FILE *stream, struct job *jobs);
+int job_read(FILE *stream, struct job **jobs);
