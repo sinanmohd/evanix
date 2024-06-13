@@ -16,9 +16,10 @@ void *queue_thread_entry(void *queue_thread)
 
 	while (true) {
 		ret = job_read(qt->stream, &job);
-		if (ret < 0) {
-			if (ret == -EOF)
-				ret = 0;
+		if (ret == -EOF) {
+			ret = 0;
+			break;
+		} else if (ret < 0) {
 			break;
 		}
 

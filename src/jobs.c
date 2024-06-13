@@ -141,7 +141,7 @@ int job_read(FILE *stream, struct job **job)
 	char *drv_path = NULL;
 
 	ret = json_streaming_read(stream, &root);
-	if (ret < 0)
+	if (ret < 0 || ret == -EOF)
 		return ret;
 
 	temp = cJSON_GetObjectItemCaseSensitive(root, "name");
