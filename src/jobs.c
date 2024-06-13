@@ -254,7 +254,8 @@ int jobs_init(FILE **stream)
 	char *const args[] = {
 		"nix-eval-jobs",
 		"--flake",
-		"github:sinanmohd/evanix#packages.x86_64-linux.evanix",
+		"github:sinanmohd/evanix#packages.x86_64-linux",
+		NULL,
 	};
 
 	/* the package is wrapProgram-ed with nix-eval-jobs  */
