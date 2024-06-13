@@ -43,21 +43,15 @@ static int job_output_insert(struct job *j, char *name, char *store_path)
 
 static int job_read_inputdrvs(struct job *job, cJSON *input_drvs)
 {
-	cJSON *array;
+	cJSON *output;
 
-	int ret = 0;
 	struct job *dep_job = NULL;
 	char *drv_path = NULL;
 	char *out_name = NULL;
+	int ret = 0;
 
-	for (cJSON *i = input_drvs; i != NULL; i = i->next) {
-		array = cJSON_GetObjectItemCaseSensitive(i, i->string);
-		if (!cJSON_IsArray(array)) {
-			ret = -EPERM;
-			goto out_free;
-		}
-
-		drv_path = strdup(i->string);
+	for (cJSON *array = input_drvs; array != NULL; array = array->next) {
+		drv_path = strdup(array->string);
 		if (drv_path == NULL) {
 			ret = -EPERM;
 			goto out_free;
@@ -69,8 +63,8 @@ static int job_read_inputdrvs(struct job *job, cJSON *input_drvs)
 			goto out_free;
 		}
 
-		for (; array != NULL; array = array->next) {
-			out_name = strdup(array->string);
+		cJSON_ArrayForEach (output, array) {
+			out_name = strdup(output->valuestring);
 			if (out_name == NULL) {
 				ret = -EPERM;
 				goto out_free;
@@ -92,9 +86,9 @@ static int job_read_inputdrvs(struct job *job, cJSON *input_drvs)
 
 out_free:
 	if (ret < 0) {
-		job_free(dep_job);
 		free(drv_path);
 		free(out_name);
+		job_free(dep_job);
 	}
 
 	return ret;
@@ -102,9 +96,9 @@ out_free:
 
 static int job_read_outputs(struct job *job, cJSON *outputs)
 {
-	int ret = 0;
 	char *out_name = NULL;
 	char *out_path = NULL;
+	int ret = 0;
 
 	for (cJSON *i = outputs; i != NULL; i = i->next) {
 		out_name = strdup(i->string);
@@ -182,7 +176,7 @@ int job_read(FILE *stream, struct job **job)
 		ret = -EPERM;
 		goto out_free;
 	}
-	ret = job_read_inputdrvs(*job, temp);
+	ret = job_read_inputdrvs(*job, temp->child);
 	if (ret < 0)
 		goto out_free;
 
@@ -191,7 +185,7 @@ int job_read(FILE *stream, struct job **job)
 		ret = -EPERM;
 		goto out_free;
 	}
-	ret = job_read_outputs(*job, temp);
+	ret = job_read_outputs(*job, temp->child);
 	if (ret < 0)
 		goto out_free;
 
