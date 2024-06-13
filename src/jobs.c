@@ -76,12 +76,11 @@ static int job_read_inputdrvs(struct job *job, cJSON *input_drvs)
 				goto out_free;
 			}
 		}
+		LIST_INSERT_HEAD(&job->deps, dep_job, dlist);
 
 		drv_path = NULL;
 		out_name = NULL;
 		dep_job = NULL;
-
-		LIST_INSERT_HEAD(&job->deps, dep_job, dlist);
 	}
 
 out_free:
