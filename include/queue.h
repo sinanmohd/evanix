@@ -1,6 +1,6 @@
 #include <pthread.h>
-#include <sys/queue.h>
 #include <semaphore.h>
+#include <sys/queue.h>
 
 #include "jobs.h"
 

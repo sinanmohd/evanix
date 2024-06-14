@@ -21,10 +21,17 @@ struct job {
 	CIRCLEQ_ENTRY(job) clist;
 };
 
+typedef enum {
+	JOB_READ_SUCCESS = 0,
+	JOB_READ_EOF = 1,
+	JOB_READ_EVAL_ERR = 2,
+	JOB_READ_JSON_INVAL = 3,
+} job_read_state_t;
+int job_read(FILE *stream, struct job **jobs);
+
 int jobs_init(FILE **stream);
 int job_new(struct job **j, char *name, char *drv_path);
 void job_free(struct job *j);
-int job_read(FILE *stream, struct job **jobs);
 
 #define JOBS_H
 #endif

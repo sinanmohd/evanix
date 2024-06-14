@@ -1,12 +1,12 @@
 #include <errno.h>
-#include <stdbool.h>
 #include <pthread.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "build.h"
-#include "queue.h"
 #include "jobs.h"
+#include "queue.h"
 #include "util.h"
 
 static int build(struct queue *queue);
@@ -39,7 +39,8 @@ out:
 	pthread_exit(NULL);
 }
 
-static int build(struct queue *queue) {
+static int build(struct queue *queue)
+{
 	struct job *job;
 	int ret = 0;
 

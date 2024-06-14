@@ -18,17 +18,20 @@ void *queue_thread_entry(void *queue_thread)
 
 	while (true) {
 		ret = job_read(qt->stream, &job);
-		if (ret == -EOF) {
+		if (ret == JOB_READ_EOF) {
 			qt->queue->state = Q_ITS_OVER;
 			sem_post(&qt->queue->sem);
 
 			ret = 0;
 			break;
-		} else if (ret < 0) {
+		} else if (ret == JOB_READ_EVAL_ERR ||
+			   ret == JOB_READ_JSON_INVAL) {
+			continue;
+		} else if (ret == JOB_READ_SUCCESS) {
+			queue_push(qt->queue, job);
+		} else {
 			break;
 		}
-
-		queue_push(qt->queue, job);
 	}
 
 	pthread_exit(NULL);

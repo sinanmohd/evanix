@@ -58,15 +58,14 @@ static int job_read_inputdrvs(struct job *job, cJSON *input_drvs)
 		}
 
 		ret = job_new(&dep_job, NULL, drv_path);
-		if (ret < 0) {
-			ret = -EPERM;
+		if (ret < 0)
 			goto out_free;
-		}
 
 		cJSON_ArrayForEach (output, array) {
 			out_name = strdup(output->valuestring);
 			if (out_name == NULL) {
-				ret = -EPERM;
+				print_err("%s", strerror(errno));
+				ret = -errno;
 				goto out_free;
 			}
 
@@ -135,67 +134,79 @@ int job_read(FILE *stream, struct job **job)
 {
 	cJSON *temp;
 
-	int ret = 0;
+	char *drv_path = NULL;
+	struct job *j = NULL;
 	cJSON *root = NULL;
 	char *name = NULL;
-	char *drv_path = NULL;
+	int ret = 0;
 
 	ret = json_streaming_read(stream, &root);
 	if (ret < 0 || ret == -EOF)
-		return ret;
+		return JOB_READ_EOF;
+
+	temp = cJSON_GetObjectItemCaseSensitive(root, "error");
+	if (cJSON_IsString(temp)) {
+		puts(temp->valuestring);
+		ret = JOB_READ_EVAL_ERR;
+		goto out_free;
+	}
 
 	temp = cJSON_GetObjectItemCaseSensitive(root, "name");
 	if (!cJSON_IsString(temp)) {
-		ret = -EPERM;
+		ret = JOB_READ_JSON_INVAL;
 		goto out_free;
 	}
 	name = strdup(temp->valuestring);
 	if (name == NULL) {
-		ret = -EPERM;
+		ret = -errno;
+		print_err("%s", strerror(errno));
 		goto out_free;
 	}
 
 	temp = cJSON_GetObjectItemCaseSensitive(root, "drvPath");
 	if (!cJSON_IsString(temp)) {
-		ret = -EPERM;
+		free(name);
+		ret = JOB_READ_JSON_INVAL;
 		goto out_free;
 	}
 	drv_path = strdup(temp->valuestring);
 	if (drv_path == NULL) {
-		ret = -EPERM;
+		free(name);
+		print_err("%s", strerror(errno));
+		ret = -errno;
 		goto out_free;
 	}
 
-	ret = job_new(job, name, drv_path);
+	ret = job_new(&j, name, drv_path);
 	if (ret < 0)
 		goto out_free;
 
 	temp = cJSON_GetObjectItemCaseSensitive(root, "inputDrvs");
 	if (!cJSON_IsObject(temp)) {
-		ret = -EPERM;
+		ret = JOB_READ_JSON_INVAL;
 		goto out_free;
 	}
-	ret = job_read_inputdrvs(*job, temp->child);
+	ret = job_read_inputdrvs(j, temp->child);
 	if (ret < 0)
 		goto out_free;
 
 	temp = cJSON_GetObjectItemCaseSensitive(root, "outputs");
 	if (!cJSON_IsObject(temp)) {
-		ret = -EPERM;
+		ret = JOB_READ_JSON_INVAL;
 		goto out_free;
 	}
-	ret = job_read_outputs(*job, temp->child);
+	ret = job_read_outputs(j, temp->child);
 	if (ret < 0)
 		goto out_free;
 
 out_free:
 	cJSON_Delete(root);
-	if (ret < 0) {
+	if (ret != JOB_READ_SUCCESS)
+		job_free(j);
+	else
+		*job = j;
+	if (ret == JOB_READ_JSON_INVAL)
 		print_err("%s", "Invalid JSON");
-
-		free(name);
-		free(drv_path);
-	}
 
 	return ret;
 }
@@ -246,8 +257,7 @@ int jobs_init(FILE **stream)
 	/* TODO: proproperly handle args */
 	char *const args[] = {
 		"nix-eval-jobs",
-		"--flake",
-		"github:sinanmohd/evanix#packages.x86_64-linux",
+		"<nixpkgs>",
 		NULL,
 	};
 
