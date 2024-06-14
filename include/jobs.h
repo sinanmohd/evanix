@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <sys/queue.h>
 
+#ifndef JOBS_H
+
 LIST_HEAD(output_dlist, output);
 struct output {
 	char *name, *store_path;
@@ -23,3 +25,6 @@ int jobs_init(FILE **stream);
 int job_new(struct job **j, char *name, char *drv_path);
 void job_free(struct job *j);
 int job_read(FILE *stream, struct job **jobs);
+
+#define JOBS_H
+#endif
