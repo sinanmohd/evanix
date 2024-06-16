@@ -213,8 +213,8 @@ out_free:
 
 void job_free(struct job *job)
 {
-	struct job *j;
-	struct output *o;
+	struct job *job_cur, *job_next;
+	struct output *op_cur, *op_next;
 
 	if (job == NULL)
 		return;
@@ -222,11 +222,8 @@ void job_free(struct job *job)
 	free(job->name);
 	free(job->drv_path);
 
-	LIST_FOREACH (o, &job->outputs, dlist)
-		output_free(o);
-
-	LIST_FOREACH (j, &job->deps, dlist)
-		job_free(j);
+	LIST_FOREACH_FREE(op_cur, op_next, &job->outputs, dlist, output_free);
+	LIST_FOREACH_FREE(job_cur, job_next, &job->deps, dlist, job_free);
 
 	free(job);
 }
@@ -257,7 +254,8 @@ int jobs_init(FILE **stream)
 	/* TODO: proproperly handle args */
 	char *const args[] = {
 		"nix-eval-jobs",
-		"<nixpkgs>",
+		"--flake",
+		"github:sinanmohd/evanix#packages.x86_64-linux",
 		NULL,
 	};
 

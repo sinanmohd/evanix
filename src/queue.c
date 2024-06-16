@@ -65,16 +65,14 @@ static void queue_push(struct queue *queue, struct job *job)
 
 void queue_thread_free(struct queue_thread *queue_thread)
 {
-	struct job *job;
+	struct job *cur, *next;
 	int ret;
 
 	if (queue_thread == NULL)
 		return;
 
-	CIRCLEQ_FOREACH (job, &queue_thread->queue->jobs, clist) {
-		CIRCLEQ_REMOVE(&queue_thread->queue->jobs, job, clist);
-		free(job);
-	}
+	CIRCLEQ_FOREACH_FREE(cur, next, &queue_thread->queue->jobs, clist,
+			     job_free);
 
 	ret = sem_destroy(&queue_thread->queue->sem);
 	if (ret < 0)
@@ -85,6 +83,7 @@ void queue_thread_free(struct queue_thread *queue_thread)
 
 	free(queue_thread->queue);
 	fclose(queue_thread->stream);
+	free(queue_thread);
 }
 
 int queue_thread_new(struct queue_thread **queue_thread, FILE *stream)

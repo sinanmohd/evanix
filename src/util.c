@@ -10,28 +10,31 @@
 
 int json_streaming_read(FILE *stream, cJSON **json)
 {
-	int ret;
 	size_t n;
+	int ret;
 	char *line = NULL;
 
 	ret = getline(&line, &n, stream);
 	if (ret < 0) {
 		if (errno != 0) {
 			print_err("%s", strerror(errno));
-			return -errno;
+			ret = -errno;
 		}
+		ret = -EOF;
 
-		return -EOF;
+		goto out_free_line;
 	}
 
 	*json = cJSON_Parse(line);
-	free(line);
 	if (cJSON_IsInvalid(*json)) {
 		print_err("%s", "Invalid JSON");
-		return -EPERM;
+		ret = -EPERM;
+		goto out_free_line;
 	}
 
-	return 0;
+out_free_line:
+	free(line);
+	return ret;
 }
 
 int vpopen(FILE **stream, const char *file, char *const argv[])

@@ -29,6 +29,7 @@
 
           gdb
           ccls
+          valgrind
           clang-tools # clang-format
         ];
 
