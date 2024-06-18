@@ -41,8 +41,7 @@
 
     packages = forAllSystems ({ system, pkgs }: {
       evanix = pkgs.stdenv.mkDerivation (finalAttrs: {
-        pname = "evanix";
-        version = self.shortRev or self.dirtyShortRev;
+        name = "evanix";
 
         src = ./.;
         nativeBuildInputs = with pkgs; [
