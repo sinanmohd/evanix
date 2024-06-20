@@ -3,23 +3,22 @@
 
 #ifndef JOBS_H
 
-LIST_HEAD(output_dlist, output);
 struct output {
 	char *name, *store_path;
-	LIST_ENTRY(output) dlist;
 };
 
-LIST_HEAD(job_dlist, job);
-CIRCLEQ_HEAD(job_clist, job);
 struct job {
 	char *name, *drv_path;
-	struct output_dlist outputs;
-	struct job_dlist deps;
 
-	/* TODO: replace dlist with clist jobs.c */
-	LIST_ENTRY(job) dlist;
+	size_t outputs_size, outputs_filled;
+	struct output **outputs;
+
+	size_t deps_size, deps_filled;
+	struct job **deps;
+
 	CIRCLEQ_ENTRY(job) clist;
 };
+CIRCLEQ_HEAD(job_clist, job);
 
 typedef enum {
 	JOB_READ_SUCCESS = 0,

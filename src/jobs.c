@@ -12,6 +12,8 @@ static void output_free(struct output *output);
 static int job_output_insert(struct job *j, char *name, char *store_path);
 static int job_read_inputdrvs(struct job *job, cJSON *input_drvs);
 static int job_read_outputs(struct job *job, cJSON *outputs);
+static int job_deps_list_insert(struct job *job, struct job *dep);
+static int job_output_list_insert(struct job *job, struct output *output);
 
 static void output_free(struct output *output)
 {
@@ -22,6 +24,54 @@ static void output_free(struct output *output)
 	free(output->store_path);
 
 	free(output);
+}
+
+static int job_output_list_insert(struct job *job, struct output *output)
+{
+	size_t newsize = 0;
+	void *ret;
+
+	if (job->outputs_filled < job->outputs_size) {
+		job->outputs[job->outputs_filled++] = output;
+		return 0;
+	}
+
+	newsize = job->outputs_size == 0 ? 1 : job->outputs_size * 2;
+	ret = realloc(job->outputs, newsize * sizeof(*job->outputs));
+	if (ret == NULL) {
+		print_err("%s", strerror(errno));
+		return -errno;
+	}
+
+	job->outputs = ret;
+	job->outputs_size = newsize;
+	job->outputs[job->outputs_filled++] = output;
+
+	return 0;
+}
+
+static int job_deps_list_insert(struct job *job, struct job *dep)
+{
+	size_t newsize = 0;
+	void *ret;
+
+	if (job->deps_filled < job->deps_size) {
+		job->deps[job->deps_filled++] = dep;
+		return 0;
+	}
+
+	newsize = job->deps_size == 0 ? 1 : job->deps_size * 2;
+	ret = realloc(job->deps, newsize * sizeof(*job->deps));
+	if (ret == NULL) {
+		print_err("%s", strerror(errno));
+		return -errno;
+	}
+
+	job->deps = ret;
+	job->deps_size = newsize;
+	job->deps[job->deps_filled++] = dep;
+
+	return 0;
 }
 
 static int job_output_insert(struct job *j, char *name, char *store_path)
@@ -52,14 +102,19 @@ static int job_output_insert(struct job *j, char *name, char *store_path)
 		o->store_path = NULL;
 	}
 
+	ret = job_output_list_insert(j, o);
+	if (ret < 0)
+		goto out_free_store_path;
+
+out_free_store_path:
+	if (ret < 0)
+		free(o->store_path);
 out_free_name:
 	if (ret < 0)
 		free(o->name);
 out_free_o:
 	if (ret < 0)
 		free(o);
-	else
-		LIST_INSERT_HEAD(&j->outputs, o, dlist);
 
 	return 0;
 }
@@ -78,13 +133,14 @@ static int job_read_inputdrvs(struct job *job, cJSON *input_drvs)
 
 		cJSON_ArrayForEach (output, array) {
 			ret = job_output_insert(dep_job, output->valuestring, NULL);
-			if (ret < 0) {
+			if (ret < 0)
 				job_free(dep_job);
-				goto out_free_dep_job;
-			}
 		}
 
-		LIST_INSERT_HEAD(&job->deps, dep_job, dlist);
+		ret = job_deps_list_insert(job, dep_job);
+		if (ret < 0)
+			job_free(dep_job);
+
 		dep_job = NULL;
 	}
 
@@ -180,17 +236,19 @@ out_free:
 
 void job_free(struct job *job)
 {
-	struct job *job_cur, *job_next;
-	struct output *op_cur, *op_next;
-
 	if (job == NULL)
 		return;
 
 	free(job->name);
 	free(job->drv_path);
 
-	LIST_FOREACH_FREE(op_cur, op_next, &job->outputs, dlist, output_free);
-	LIST_FOREACH_FREE(job_cur, job_next, &job->deps, dlist, job_free);
+	for (size_t i = 0; i < job->outputs_filled; i++)
+		output_free(job->outputs[i]);
+	free(job->outputs);
+
+	for (size_t i = 0; i < job->deps_filled; i++)
+		job_free(job->deps[i]);
+	free(job->deps);
 
 	free(job);
 }
@@ -224,8 +282,13 @@ int job_new(struct job **j, char *name, char *drv_path)
 		goto out_free_name;
 	}
 
-	LIST_INIT(&job->deps);
-	LIST_INIT(&job->outputs);
+	job->outputs_size = 0;
+	job->outputs_filled = 0;
+	job->outputs = NULL;
+
+	job->deps_size = 0;
+	job->deps_filled = 0;
+	job->deps = NULL;
 
 out_free_name:
 	if (ret < 0)
