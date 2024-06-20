@@ -9,11 +9,15 @@
 #include "util.h"
 
 static void output_free(struct output *output);
+static int job_new(struct job **j, char *name, char *drv_path,
+		   struct job *parent);
 static int job_output_insert(struct job *j, char *name, char *store_path);
 static int job_read_inputdrvs(struct job *job, cJSON *input_drvs);
 static int job_read_outputs(struct job *job, cJSON *outputs);
 static int job_deps_list_insert(struct job *job, struct job *dep);
 static int job_output_list_insert(struct job *job, struct output *output);
+static int job_parents_list_insert(struct job *job, struct job *parent);
+static void job_deps_list_rm(struct job *job, struct job *dep);
 
 static void output_free(struct output *output)
 {
@@ -28,7 +32,7 @@ static void output_free(struct output *output)
 
 static int job_output_list_insert(struct job *job, struct output *output)
 {
-	size_t newsize = 0;
+	size_t newsize;
 	void *ret;
 
 	if (job->outputs_filled < job->outputs_size) {
@@ -50,9 +54,21 @@ static int job_output_list_insert(struct job *job, struct output *output)
 	return 0;
 }
 
+static void job_deps_list_rm(struct job *job, struct job *dep)
+{
+	for (size_t i = 0; i < job->deps_filled; i++) {
+		if (job->deps[i] != dep)
+			continue;
+
+		job->deps[i] = job->deps[job->deps_filled - 1];
+		job->deps_filled -= 1;
+		return;
+	}
+}
+
 static int job_deps_list_insert(struct job *job, struct job *dep)
 {
-	size_t newsize = 0;
+	size_t newsize;
 	void *ret;
 
 	if (job->deps_filled < job->deps_size) {
@@ -70,6 +86,30 @@ static int job_deps_list_insert(struct job *job, struct job *dep)
 	job->deps = ret;
 	job->deps_size = newsize;
 	job->deps[job->deps_filled++] = dep;
+
+	return 0;
+}
+
+static int job_parents_list_insert(struct job *job, struct job *parent)
+{
+	size_t newsize;
+	void *ret;
+
+	if (job->parents_filled < job->parents_size) {
+		job->parents[job->parents_filled++] = parent;
+		return 0;
+	}
+
+	newsize = job->parents_size == 0 ? 1 : job->parents_size * 2;
+	ret = realloc(job->parents, newsize * sizeof(*job->parents));
+	if (ret == NULL) {
+		print_err("%s", strerror(errno));
+		return -errno;
+	}
+
+	job->parents = ret;
+	job->parents_size = newsize;
+	job->parents[job->parents_filled++] = parent;
 
 	return 0;
 }
@@ -127,12 +167,13 @@ static int job_read_inputdrvs(struct job *job, cJSON *input_drvs)
 	int ret = 0;
 
 	for (cJSON *array = input_drvs; array != NULL; array = array->next) {
-		ret = job_new(&dep_job, NULL, array->string);
+		ret = job_new(&dep_job, NULL, array->string, job);
 		if (ret < 0)
 			goto out_free_dep_job;
 
 		cJSON_ArrayForEach (output, array) {
-			ret = job_output_insert(dep_job, output->valuestring, NULL);
+			ret = job_output_insert(dep_job, output->valuestring,
+						NULL);
 			if (ret < 0)
 				job_free(dep_job);
 		}
@@ -200,7 +241,7 @@ int job_read(FILE *stream, struct job **job)
 	}
 	drv_path = temp->valuestring;
 
-	ret = job_new(&j, name, drv_path);
+	ret = job_new(&j, name, drv_path, NULL);
 	if (ret < 0)
 		goto out_free;
 
@@ -239,21 +280,27 @@ void job_free(struct job *job)
 	if (job == NULL)
 		return;
 
-	free(job->name);
-	free(job->drv_path);
+	/* deps_filled will be decremented by recusrive call to the job_free
+	 * see job_deps_list_rm() in the next for loop */
+	while (job->deps_filled)
+		job_free(*job->deps);
+	free(job->deps);
+
+	for (size_t i = 0; i < job->parents_filled; i++)
+		job_deps_list_rm(job->parents[i], job);
+	free(job->parents);
 
 	for (size_t i = 0; i < job->outputs_filled; i++)
 		output_free(job->outputs[i]);
 	free(job->outputs);
 
-	for (size_t i = 0; i < job->deps_filled; i++)
-		job_free(job->deps[i]);
-	free(job->deps);
-
+	free(job->drv_path);
+	free(job->name);
 	free(job);
 }
 
-int job_new(struct job **j, char *name, char *drv_path)
+static int job_new(struct job **j, char *name, char *drv_path,
+		   struct job *parent)
 {
 	struct job *job;
 	int ret = 0;
@@ -263,6 +310,18 @@ int job_new(struct job **j, char *name, char *drv_path)
 		print_err("%s", strerror(errno));
 		return -errno;
 	}
+
+	job->outputs_size = 0;
+	job->outputs_filled = 0;
+	job->outputs = NULL;
+
+	job->deps_size = 0;
+	job->deps_filled = 0;
+	job->deps = NULL;
+
+	job->parents_size = 0;
+	job->parents_filled = 0;
+	job->parents = NULL;
 
 	if (name != NULL) {
 		job->name = strdup(name);
@@ -282,14 +341,15 @@ int job_new(struct job **j, char *name, char *drv_path)
 		goto out_free_name;
 	}
 
-	job->outputs_size = 0;
-	job->outputs_filled = 0;
-	job->outputs = NULL;
+	if (parent != NULL) {
+		ret = job_parents_list_insert(job, parent);
+		if (ret < 0)
+			goto out_free_drv_path;
+	}
 
-	job->deps_size = 0;
-	job->deps_filled = 0;
-	job->deps = NULL;
-
+out_free_drv_path:
+	if (ret < 0)
+		free(job->drv_path);
 out_free_name:
 	if (ret < 0)
 		free(job->name);

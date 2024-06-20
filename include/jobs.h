@@ -16,6 +16,9 @@ struct job {
 	size_t deps_size, deps_filled;
 	struct job **deps;
 
+	size_t parents_size, parents_filled;
+	struct job **parents;
+
 	CIRCLEQ_ENTRY(job) clist;
 };
 CIRCLEQ_HEAD(job_clist, job);
@@ -29,7 +32,6 @@ typedef enum {
 int job_read(FILE *stream, struct job **jobs);
 
 int jobs_init(FILE **stream);
-int job_new(struct job **j, char *name, char *drv_path);
 void job_free(struct job *j);
 
 #define JOBS_H
