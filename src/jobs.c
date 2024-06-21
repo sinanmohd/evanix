@@ -16,7 +16,6 @@ static int job_read_inputdrvs(struct job *job, cJSON *input_drvs);
 static int job_read_outputs(struct job *job, cJSON *outputs);
 static int job_deps_list_insert(struct job *job, struct job *dep);
 static int job_output_list_insert(struct job *job, struct output *output);
-static int job_parents_list_insert(struct job *job, struct job *parent);
 static void job_deps_list_rm(struct job *job, struct job *dep);
 
 static void output_free(struct output *output)
@@ -90,7 +89,7 @@ static int job_deps_list_insert(struct job *job, struct job *dep)
 	return 0;
 }
 
-static int job_parents_list_insert(struct job *job, struct job *parent)
+int job_parents_list_insert(struct job *job, struct job *parent)
 {
 	size_t newsize;
 	void *ret;
@@ -310,6 +309,7 @@ static int job_new(struct job **j, char *name, char *drv_path,
 		print_err("%s", strerror(errno));
 		return -errno;
 	}
+	job->transitive = true;
 
 	job->outputs_size = 0;
 	job->outputs_filled = 0;

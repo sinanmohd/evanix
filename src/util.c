@@ -14,6 +14,7 @@ int json_streaming_read(FILE *stream, cJSON **json)
 	int ret;
 	char *line = NULL;
 
+	errno = 0;
 	ret = getline(&line, &n, stream);
 	if (ret < 0) {
 		if (errno != 0) {

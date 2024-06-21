@@ -44,7 +44,7 @@ static int build(struct queue *queue)
 	struct job *job;
 	int ret = 0;
 
-	ret = queue_pop(queue, &job);
+	ret = queue_pop(queue, &job, queue->htab);
 	if (ret < 0)
 		return ret;
 
