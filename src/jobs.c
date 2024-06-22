@@ -16,7 +16,6 @@ static int job_read_inputdrvs(struct job *job, cJSON *input_drvs);
 static int job_read_outputs(struct job *job, cJSON *outputs);
 static int job_deps_list_insert(struct job *job, struct job *dep);
 static int job_output_list_insert(struct job *job, struct output *output);
-static void job_deps_list_rm(struct job *job, struct job *dep);
 
 static void output_free(struct output *output)
 {
@@ -53,7 +52,7 @@ static int job_output_list_insert(struct job *job, struct output *output)
 	return 0;
 }
 
-static void job_deps_list_rm(struct job *job, struct job *dep)
+void job_deps_list_rm(struct job *job, struct job *dep)
 {
 	for (size_t i = 0; i < job->deps_filled; i++) {
 		if (job->deps[i] != dep)
@@ -370,7 +369,7 @@ int jobs_init(FILE **stream)
 	char *const args[] = {
 		"nix-eval-jobs",
 		"--flake",
-		"github:sinanmohd/evanix#packages.x86_64-linux",
+		"github:NixOS/nixpkgs#legacyPackages.x86_64-linux.python310Packages",
 		NULL,
 	};
 

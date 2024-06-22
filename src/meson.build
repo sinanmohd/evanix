@@ -6,6 +6,7 @@ e = executable(
 		'util.c',
 		'queue.c',
 		'build.c',
+		'htab.c',
 	],
 
 	include_directories: evanix_inc,
