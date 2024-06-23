@@ -1,7 +1,7 @@
-/* since hsearch_r does not support deletions dirctly, this is an abstraction on
- * top of it with support for deletions, for this to work properly we have to
- * strdup the key, this is not a big issue for 100k drv_path strings, it's
- * either this or pulling in a external library
+/* since hsearch_r does not support deletions dirctly (gotta go fast), this is
+ * an abstraction on top of it with support for deletions, for this to work
+ * properly we have to strdup the key, this is not a big issue for 100k drv_path
+ * strings, it's either this or pulling in an external library
  */
 
 #include <errno.h>
@@ -10,8 +10,6 @@
 
 #include "htab.h"
 #include "util.h"
-
-#define MAX_NIX_PKG_COUNT 200000
 
 static int htab_keys_insert(struct htab *htab, char *key);
 
@@ -97,7 +95,7 @@ int htab_delete(struct htab *htab, const char *key)
 	return htab_enter(htab, key, NULL);
 }
 
-int htab_init(struct htab **htab)
+int htab_init(size_t nel, struct htab **htab)
 {
 	int ret;
 	struct htab *h;
@@ -115,7 +113,7 @@ int htab_init(struct htab **htab)
 		goto out_free_h;
 	}
 
-	ret = hcreate_r(MAX_NIX_PKG_COUNT, h->table);
+	ret = hcreate_r(nel, h->table);
 	if (ret == 0) {
 		print_err("%s", strerror(errno));
 		ret = -errno;
@@ -143,8 +141,10 @@ void htab_free(struct htab *htab)
 {
 	for (size_t i = 0; i < htab->key_filled; i++)
 		free(htab->keys[i]);
-
 	free(htab->keys);
+
+	hdestroy_r(htab->table);
 	free(htab->table);
+
 	free(htab);
 }

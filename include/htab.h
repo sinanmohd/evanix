@@ -9,7 +9,7 @@ struct htab {
 };
 
 void htab_free(struct htab *htab);
-int htab_init(struct htab **htab);
+int htab_init(size_t nel, struct htab **htab);
 int htab_delete(struct htab *htab, const char *key);
 int htab_enter(struct htab *htab, const char *key, void *data);
 int htab_search(struct htab *htab, char *key, ENTRY **ep);

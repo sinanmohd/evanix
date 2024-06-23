@@ -278,8 +278,8 @@ void job_free(struct job *job)
 	if (job == NULL)
 		return;
 
-	/* deps_filled will be decremented by recusrive call to the job_free
-	 * see job_deps_list_rm() in the next for loop */
+	/* deps_filled will be decremented by recusrive call to job_free()
+	 * itself, see job_deps_list_rm() in the next for loop */
 	while (job->deps_filled)
 		job_free(*job->deps);
 	free(job->deps);
@@ -369,7 +369,7 @@ int jobs_init(FILE **stream)
 	char *const args[] = {
 		"nix-eval-jobs",
 		"--flake",
-		"github:NixOS/nixpkgs#legacyPackages.x86_64-linux.python310Packages",
+		"github:sinanmohd/evanix#packages.x86_64-linux",
 		NULL,
 	};
 

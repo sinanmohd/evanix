@@ -111,8 +111,6 @@ static int queue_htab_job_merge(struct job **job, struct htab *htab)
 	ENTRY *ep;
 	int ret;
 
-	// e.key = (*job)->drv_path;
-	// ret = hsearch_r(e, FIND, &ep, htab);
 	ret = htab_search(htab, (*job)->drv_path, &ep);
 	if (ret < 0) {
 		return ret;
@@ -229,7 +227,7 @@ int queue_thread_new(struct queue_thread **queue_thread, FILE *stream)
 		goto out_free_queue;
 	}
 
-	ret = htab_init(&qt->queue->htab);
+	ret = htab_init(MAX_NIX_PKG_COUNT, &qt->queue->htab);
 	if (ret < 0)
 		goto out_free_sem;
 
