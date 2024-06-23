@@ -1,11 +1,15 @@
 #include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include <cjson/cJSON.h>
 
+#include "evanix.h"
 #include "util.h"
 
 int json_streaming_read(FILE *stream, cJSON **json)
@@ -40,8 +44,8 @@ out_free_line:
 
 int vpopen(FILE **stream, const char *file, char *const argv[])
 {
-	int fd[2];
-	int ret;
+	int fd[2], ret;
+	int nullfd = -1;
 
 	ret = pipe(fd);
 	if (ret < 0) {
@@ -69,13 +73,62 @@ int vpopen(FILE **stream, const char *file, char *const argv[])
 
 	close(fd[0]);
 	ret = dup2(fd[1], STDOUT_FILENO);
-	if (ret < 0)
-		goto out_err;
+	if (ret < 0) {
+		print_err("%s", strerror(errno));
+		goto out_close_fd_1;
+	}
+
+	if (evanix_opts.close_stderr_exec) {
+		nullfd = open("/dev/null", O_WRONLY);
+		if (nullfd < 0) {
+			print_err("%s", strerror(errno));
+			goto out_close_fd_1;
+		}
+		ret = dup2(nullfd, STDERR_FILENO);
+		if (ret < 0) {
+			print_err("%s", strerror(errno));
+			goto out_close_nullfd;
+		}
+	}
 
 	execvp(file, argv);
-
-out_err:
-	close(fd[1]);
 	print_err("%s", strerror(errno));
+
+out_close_nullfd:
+	if (nullfd >= 0)
+		close(nullfd);
+out_close_fd_1:
+	close(fd[1]);
 	exit(EXIT_FAILURE);
+}
+
+int atob(const char *s)
+{
+	if (!strcmp(s, "true") || !strcmp(s, "yes") || !strcmp(s, "y"))
+		return true;
+	else if (!strcmp(s, "false") || !strcmp(s, "no") || !strcmp(s, "n"))
+		return false;
+
+	return -1;
+}
+
+int run(const char *file, char *argv[])
+{
+	int ret, wstatus;
+
+	ret = fork();
+	switch (ret) {
+	case -1:
+		print_err("%s", strerror(errno));
+		return -errno;
+	case 0:
+		execvp(file, argv);
+		print_err("%s", strerror(errno));
+		exit(EXIT_FAILURE);
+	default:
+		ret = waitpid(ret, &wstatus, 0);
+		if (!WIFEXITED(wstatus))
+			return -EPERM;
+		return WEXITSTATUS(wstatus) == 0 ? 0 : -EPERM;
+	}
 }

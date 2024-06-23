@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 
 #include <cjson/cJSON.h>
@@ -14,3 +15,5 @@
 
 int json_streaming_read(FILE *stream, cJSON **json);
 int vpopen(FILE **stream, const char *file, char *const argv[]);
+int atob(const char *s);
+int run(const char *file, char *argv[]);

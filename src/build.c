@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "build.h"
+#include "evanix.h"
 #include "jobs.h"
 #include "queue.h"
 #include "util.h"
@@ -42,13 +43,27 @@ out:
 static int build(struct queue *queue)
 {
 	struct job *job;
-	int ret = 0;
+	char *args[3];
+	size_t argindex;
+	int ret;
 
 	ret = queue_pop(queue, &job, queue->htab);
 	if (ret < 0)
 		return ret;
 
-	printf("nix build %s^*\n", job->drv_path);
+	argindex = 0;
+	args[argindex++] = "nix-build";
+	args[argindex++] = job->drv_path;
+	args[argindex++] = NULL;
+
+	if (evanix_opts.isdryrun) {
+		for (size_t i = 0; i < argindex - 1; i++)
+			printf("%s%c", args[i],
+			       (i + 2 == argindex) ? '\n' : ' ');
+	} else {
+		run("nix-build", args);
+	}
+
 	job_free(job);
 
 	return 0;

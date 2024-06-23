@@ -5,6 +5,7 @@
 
 #include <cjson/cJSON.h>
 
+#include "evanix.h"
 #include "jobs.h"
 #include "util.h"
 
@@ -219,7 +220,8 @@ int job_read(FILE *stream, struct job **job)
 
 	temp = cJSON_GetObjectItemCaseSensitive(root, "error");
 	if (cJSON_IsString(temp)) {
-		puts(temp->valuestring);
+		if (evanix_opts.close_stderr_exec)
+			puts(temp->valuestring);
 		ret = JOB_READ_EVAL_ERR;
 		goto out_free;
 	}
@@ -361,17 +363,18 @@ out_free_job:
 	return ret;
 }
 
-int jobs_init(FILE **stream)
+int jobs_init(FILE **stream, char *expr)
 {
+	size_t argindex;
+	char *args[4];
 	int ret;
 
-	/* TODO: proproperly handle args */
-	char *const args[] = {
-		"nix-eval-jobs",
-		"--flake",
-		"github:sinanmohd/evanix#packages.x86_64-linux",
-		NULL,
-	};
+	argindex = 0;
+	args[argindex++] = "nix-eval-jobs";
+	if (evanix_opts.isflake)
+		args[argindex++] = "--flake";
+	args[argindex++] = expr;
+	args[argindex++] = NULL;
 
 	/* the package is wrapProgram-ed with nix-eval-jobs  */
 	ret = vpopen(stream, "nix-eval-jobs", args);

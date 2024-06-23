@@ -71,13 +71,12 @@ int htab_enter(struct htab *htab, const char *key, void *data)
 		return -errno;
 	}
 
-	e.data = data;
 	ret = hsearch_r(e, ENTER, &ep, htab->table);
 	if (ret == 0) {
 		print_err("%s", strerror(errno));
 		return -errno;
 	}
-	ep->data = NULL;
+	ep->data = data;
 
 	if (ep->key != e.key) {
 		free(e.key);
