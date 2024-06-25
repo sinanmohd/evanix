@@ -1,0 +1,10 @@
+[build-system]
+build-backend = 'mesonpy'
+requires = [ 'meson-python' ]
+
+[project]
+name = 'evanix'
+version = '0.0.1'
+
+[tool.meson-python.args]
+setup = [ '-Dbuild-python=true' ]

@@ -21,4 +21,13 @@ add_project_arguments(
 cjson_dep = dependency('libcjson')
 evanix_inc = include_directories('include')
 
+if get_option('build-python')
+  py = import('python').find_installation()
+  py.extension_module(
+    'evanix',
+    'src/evanix-py.c',
+    install: true,
+  )
+endif
+
 subdir('src')
