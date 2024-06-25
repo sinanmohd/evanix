@@ -434,7 +434,7 @@ out_free_job:
 	return ret;
 }
 
-int jobs_init(FILE **stream, char *expr)
+int jobs_init(FILE **stream, const char *expr)
 {
 	size_t argindex;
 	char *args[6];

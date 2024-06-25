@@ -36,7 +36,8 @@ typedef enum {
 } job_read_state_t;
 int job_read(FILE *stream, struct job **jobs);
 
-int jobs_init(FILE **stream, char *expr);
+/* Spawns nix-eval-jobs and connects its stdout to stream */
+int jobs_init(FILE **stream, const char *expr);
 void job_free(struct job *j);
 int job_parents_list_insert(struct job *job, struct job *parent);
 void job_deps_list_rm(struct job *job, struct job *dep);
