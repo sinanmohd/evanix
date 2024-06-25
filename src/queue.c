@@ -66,7 +66,8 @@ void *queue_thread_entry(void *queue_thread)
 			ret = 0;
 			break;
 		} else if (ret == JOB_READ_EVAL_ERR ||
-			   ret == JOB_READ_JSON_INVAL) {
+			   ret == JOB_READ_JSON_INVAL ||
+			   ret == JOB_READ_CACHED) {
 			continue;
 		} else if (ret == JOB_READ_SUCCESS) {
 			queue_push(qt->queue, job);

@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -204,6 +205,32 @@ static int job_read_outputs(struct job *job, cJSON *outputs)
 	return 0;
 }
 
+static int job_read_cache(struct job *job, cJSON *is_cached)
+{
+	int ret;
+
+	if (cJSON_IsFalse(is_cached)) {
+		job->insubstituters = false;
+		return JOB_READ_SUCCESS;
+	}
+
+	for (size_t i = 0; i < job->outputs_filled; i++) {
+		ret = access(job->outputs[i]->store_path, F_OK);
+		if (ret == 0)
+			continue;
+
+		if (errno == ENOENT || errno == ENOTDIR) {
+			job->insubstituters = true;
+			return JOB_READ_SUCCESS;
+		} else {
+			print_err("%s", strerror(errno));
+			return --errno;
+		}
+	}
+
+	return JOB_READ_CACHED;
+}
+
 int job_read(FILE *stream, struct job **job)
 {
 	cJSON *temp;
@@ -260,6 +287,15 @@ int job_read(FILE *stream, struct job **job)
 		goto out_free;
 	}
 	ret = job_read_outputs(j, temp->child);
+	if (ret < 0)
+		goto out_free;
+
+	temp = cJSON_GetObjectItemCaseSensitive(root, "isCached");
+	if (!cJSON_IsBool(temp)) {
+		ret = JOB_READ_JSON_INVAL;
+		goto out_free;
+	}
+	ret = job_read_cache(j, temp);
 	if (ret < 0)
 		goto out_free;
 
@@ -366,11 +402,12 @@ out_free_job:
 int jobs_init(FILE **stream, char *expr)
 {
 	size_t argindex;
-	char *args[4];
+	char *args[5];
 	int ret;
 
 	argindex = 0;
 	args[argindex++] = "nix-eval-jobs";
+	args[argindex++] = "--check-cache-status";
 	if (evanix_opts.isflake)
 		args[argindex++] = "--flake";
 	args[argindex++] = expr;

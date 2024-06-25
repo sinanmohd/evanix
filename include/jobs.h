@@ -11,6 +11,7 @@ struct output {
 struct job {
 	char *name, *drv_path;
 	bool transitive;
+	bool insubstituters;
 
 	size_t outputs_size, outputs_filled;
 	struct output **outputs;
@@ -30,6 +31,7 @@ typedef enum {
 	JOB_READ_EOF = 1,
 	JOB_READ_EVAL_ERR = 2,
 	JOB_READ_JSON_INVAL = 3,
+	JOB_READ_CACHED = 4,
 } job_read_state_t;
 int job_read(FILE *stream, struct job **jobs);
 
