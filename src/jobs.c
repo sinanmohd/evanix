@@ -367,7 +367,7 @@ static int job_new(struct job **j, char *name, char *drv_path,
 		print_err("%s", strerror(errno));
 		return -errno;
 	}
-	job->transitive = true;
+	job->scheduled = false;
 
 	job->outputs_size = 0;
 	job->outputs_filled = 0;

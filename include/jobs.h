@@ -10,7 +10,7 @@ struct output {
 
 struct job {
 	char *name, *drv_path, *attr;
-	bool transitive;
+	bool scheduled;
 	bool insubstituters;
 
 	size_t outputs_size, outputs_filled;
