@@ -32,6 +32,7 @@ typedef enum {
 	JOB_READ_EVAL_ERR = 2,
 	JOB_READ_JSON_INVAL = 3,
 	JOB_READ_CACHED = 4,
+	JOB_READ_SYS_MISMATCH = 5,
 } job_read_state_t;
 int job_read(FILE *stream, struct job **jobs);
 

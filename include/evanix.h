@@ -7,6 +7,7 @@ struct evanix_opts_t {
 	bool isdryrun;
 	bool ispipelined;
 	bool close_stderr_exec;
+	char *system;
 };
 
 extern struct evanix_opts_t evanix_opts;

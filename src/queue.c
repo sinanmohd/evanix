@@ -67,6 +67,7 @@ void *queue_thread_entry(void *queue_thread)
 			break;
 		} else if (ret == JOB_READ_EVAL_ERR ||
 			   ret == JOB_READ_JSON_INVAL ||
+			   ret == JOB_READ_SYS_MISMATCH ||
 			   ret == JOB_READ_CACHED) {
 			continue;
 		} else if (ret == JOB_READ_SUCCESS) {

@@ -14,6 +14,7 @@ static const char usage[] =
 	"  -f, --flake                     Build a flake.\n"
 	"  -d, --dry-run                   Show what derivations would be "
 	"built.\n"
+	"  -s, --system                    System to build for."
 	"  -p, --pipelined         <bool>  Use evanix build pipeline.\n"
 	"  -c, --close-stderr-exec <bool>  Close stderr on exec.\n"
 	"\n";
@@ -23,6 +24,7 @@ struct evanix_opts_t evanix_opts = {
 	.isflake = false,
 	.ispipelined = true,
 	.isdryrun = false,
+	.system = NULL,
 };
 
 static int evanix(char *expr);
@@ -99,6 +101,7 @@ int main(int argc, char *argv[])
 		{"help", no_argument, NULL, 'h'},
 		{"flake", no_argument, NULL, 'f'},
 		{"dry-run", no_argument, NULL, 'd'},
+		{"system", required_argument, NULL, 's'},
 		{"pipelined", required_argument, NULL, 'p'},
 		{"close-stderr-exec", required_argument, NULL, 'c'},
 		{NULL, 0, NULL, 0},
@@ -116,6 +119,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'd':
 			evanix_opts.isdryrun = true;
+			break;
+		case 's':
+			evanix_opts.system = optarg;
 			break;
 		case 'p':
 			ret = atob(optarg);
