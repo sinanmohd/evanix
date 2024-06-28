@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 
 #include "build.h"
@@ -43,16 +44,29 @@ out:
 static int build(struct queue *queue)
 {
 	struct job *job;
-	char *args[3];
+	char *args[5];
 	size_t argindex;
 	int ret;
+
+	char out_link[NAME_MAX] = "result";
 
 	ret = queue_pop(queue, &job, queue->htab);
 	if (ret < 0)
 		return ret;
 
+	if (job->attr) {
+		ret = snprintf(out_link, sizeof(out_link), "result-%s", job->attr);
+		if (ret < 0 || (size_t)ret > sizeof(out_link)) {
+			ret = -ENAMETOOLONG;
+			print_err("%s", strerror(-ret));
+			goto out_free_job;
+		}
+	}
+
 	argindex = 0;
 	args[argindex++] = "nix-build";
+	args[argindex++] = "--out-link";
+	args[argindex++] = out_link;
 	args[argindex++] = job->drv_path;
 	args[argindex++] = NULL;
 
@@ -64,9 +78,10 @@ static int build(struct queue *queue)
 		run("nix-build", args);
 	}
 
+out_free_job:
 	job_free(job);
 
-	return 0;
+	return ret;
 }
 
 int build_thread_new(struct build_thread **build_thread, struct queue *q)

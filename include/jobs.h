@@ -9,7 +9,7 @@ struct output {
 };
 
 struct job {
-	char *name, *drv_path;
+	char *name, *drv_path, *attr;
 	bool transitive;
 	bool insubstituters;
 

@@ -11,7 +11,7 @@
 #include "util.h"
 
 static void output_free(struct output *output);
-static int job_new(struct job **j, char *name, char *drv_path,
+static int job_new(struct job **j, char *name, char *drv_path, char *attr,
 		   struct job *parent);
 static int job_output_insert(struct job *j, char *name, char *store_path);
 static int job_read_inputdrvs(struct job *job, cJSON *input_drvs);
@@ -167,7 +167,7 @@ static int job_read_inputdrvs(struct job *job, cJSON *input_drvs)
 	int ret = 0;
 
 	for (cJSON *array = input_drvs; array != NULL; array = array->next) {
-		ret = job_new(&dep_job, NULL, array->string, job);
+		ret = job_new(&dep_job, NULL, array->string, NULL, job);
 		if (ret < 0)
 			goto out_free_dep_job;
 
@@ -238,6 +238,7 @@ int job_read(FILE *stream, struct job **job)
 	char *drv_path = NULL;
 	struct job *j = NULL;
 	cJSON *root = NULL;
+	char *attr = NULL;
 	char *name = NULL;
 	int ret = 0;
 
@@ -271,6 +272,14 @@ int job_read(FILE *stream, struct job **job)
 	}
 	name = temp->valuestring;
 
+	temp = cJSON_GetObjectItemCaseSensitive(root, "attr");
+	if (!cJSON_IsString(temp)) {
+		ret = JOB_READ_JSON_INVAL;
+		goto out_free;
+	}
+	if (temp->valuestring[0] != '\0')
+		attr = temp->valuestring;
+
 	temp = cJSON_GetObjectItemCaseSensitive(root, "drvPath");
 	if (!cJSON_IsString(temp)) {
 		free(name);
@@ -279,7 +288,7 @@ int job_read(FILE *stream, struct job **job)
 	}
 	drv_path = temp->valuestring;
 
-	ret = job_new(&j, name, drv_path, NULL);
+	ret = job_new(&j, name, drv_path, attr, NULL);
 	if (ret < 0)
 		goto out_free;
 
@@ -343,11 +352,12 @@ void job_free(struct job *job)
 
 	free(job->drv_path);
 	free(job->name);
+	free(job->attr);
 	free(job);
 }
 
 static int job_new(struct job **j, char *name, char *drv_path,
-		   struct job *parent)
+		   char *attr, struct job *parent)
 {
 	struct job *job;
 	int ret = 0;
@@ -371,12 +381,23 @@ static int job_new(struct job **j, char *name, char *drv_path,
 	job->parents_filled = 0;
 	job->parents = NULL;
 
+	if (attr != NULL) {
+		job->attr = strdup(attr);
+		if (job->attr == NULL) {
+			print_err("%s", strerror(errno));
+			ret = -errno;
+			goto out_free_job;
+		}
+	} else {
+		job->attr = NULL;
+	}
+
 	if (name != NULL) {
 		job->name = strdup(name);
 		if (job->name == NULL) {
 			print_err("%s", strerror(errno));
 			ret = -errno;
-			goto out_free_job;
+			goto out_free_attr;
 		}
 	} else {
 		job->name = NULL;
@@ -401,6 +422,9 @@ out_free_drv_path:
 out_free_name:
 	if (ret < 0)
 		free(job->name);
+out_free_attr:
+	if (ret < 0)
+		free(job->attr);
 out_free_job:
 	if (ret < 0)
 		free(job);
