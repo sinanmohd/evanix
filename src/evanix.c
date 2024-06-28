@@ -33,22 +33,22 @@ static int evanix(char *expr)
 {
 	struct queue_thread *queue_thread = NULL;
 	struct build_thread *build_thread = NULL;
-	FILE *stream = NULL;
+	FILE *jobsStream = NULL; /* nix-eval-jobs stdout */
 	int ret = 0;
 
-	ret = jobs_init(&stream, expr);
+	ret = jobs_init(&jobsStream, expr);
 	if (ret < 0)
 		goto out_free;
 
-	ret = queue_thread_new(&queue_thread, stream);
+	ret = queue_thread_new(&queue_thread, jobsStream);
 	if (ret < 0) {
-		free(stream);
+		free(jobsStream);
 		goto out_free;
 	}
 
 	ret = build_thread_new(&build_thread, queue_thread->queue);
 	if (ret < 0) {
-		free(stream);
+		free(jobsStream);
 		goto out_free;
 	}
 

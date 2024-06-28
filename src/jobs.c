@@ -367,7 +367,7 @@ static int job_new(struct job **j, char *name, char *drv_path,
 		print_err("%s", strerror(errno));
 		return -errno;
 	}
-	job->transitive = true;
+	job->scheduled = false;
 
 	job->outputs_size = 0;
 	job->outputs_filled = 0;
@@ -434,7 +434,7 @@ out_free_job:
 	return ret;
 }
 
-int jobs_init(FILE **stream, char *expr)
+int jobs_init(FILE **stream, const char *expr)
 {
 	size_t argindex;
 	char *args[6];

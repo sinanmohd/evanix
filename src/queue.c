@@ -41,7 +41,7 @@ static int queue_dag_isolate(struct job *job, struct job *keep_parent,
 		job->parents_filled = 0;
 	}
 
-	if (!job->transitive)
+	if (job->scheduled)
 		CIRCLEQ_REMOVE(jobs, job, clist);
 
 	ret = htab_delete(htab, job->drv_path);
@@ -169,8 +169,8 @@ static int queue_push(struct queue *queue, struct job *job)
 	}
 
 	/* no duplicate entries in queue */
-	if (job->transitive) {
-		job->transitive = false;
+	if (!job->scheduled) {
+		job->scheduled = true;
 		CIRCLEQ_INSERT_TAIL(&queue->jobs, job, clist);
 	}
 	pthread_mutex_unlock(&queue->mutex);
