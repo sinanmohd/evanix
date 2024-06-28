@@ -15,7 +15,7 @@
           pkgs = import nixpkgs { inherit system; };
         };
 
-      supportedSystems = lib.platforms.unix;
+      supportedSystems = lib.systems.flakeExposed;
       forAllSystems = f: lib.genAttrs supportedSystems (forSystem f);
     in
     {
