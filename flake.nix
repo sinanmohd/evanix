@@ -27,6 +27,7 @@
 
             buildInputs = with pkgs; [
               jq
+              highs
               cjson
               nix-eval-jobs
 
@@ -63,7 +64,7 @@
             ];
             buildInputs = with pkgs; [
               cjson
-              nix-eval-jobs
+              highs
             ];
 
             postInstall = ''

@@ -1,8 +1,8 @@
 #include <errno.h>
+#include <limits.h>
 #include <pthread.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <string.h>
 
 #include "build.h"
@@ -54,8 +54,9 @@ static int build(struct queue *queue)
 	if (ret < 0)
 		return ret;
 
-	if (job->attr) {
-		ret = snprintf(out_link, sizeof(out_link), "result-%s", job->attr);
+	if (job->nix_attr_name) {
+		ret = snprintf(out_link, sizeof(out_link), "result-%s",
+			       job->nix_attr_name);
 		if (ret < 0 || (size_t)ret > sizeof(out_link)) {
 			ret = -ENAMETOOLONG;
 			print_err("%s", strerror(-ret));

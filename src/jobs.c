@@ -1,8 +1,8 @@
 #include <errno.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <cjson/cJSON.h>
 
@@ -352,12 +352,12 @@ void job_free(struct job *job)
 
 	free(job->drv_path);
 	free(job->name);
-	free(job->attr);
+	free(job->nix_attr_name);
 	free(job);
 }
 
-static int job_new(struct job **j, char *name, char *drv_path,
-		   char *attr, struct job *parent)
+static int job_new(struct job **j, char *name, char *drv_path, char *attr,
+		   struct job *parent)
 {
 	struct job *job;
 	int ret = 0;
@@ -368,6 +368,7 @@ static int job_new(struct job **j, char *name, char *drv_path,
 		return -errno;
 	}
 	job->scheduled = false;
+	job->id = -1;
 
 	job->outputs_size = 0;
 	job->outputs_filled = 0;
@@ -382,14 +383,14 @@ static int job_new(struct job **j, char *name, char *drv_path,
 	job->parents = NULL;
 
 	if (attr != NULL) {
-		job->attr = strdup(attr);
-		if (job->attr == NULL) {
+		job->nix_attr_name = strdup(attr);
+		if (job->nix_attr_name == NULL) {
 			print_err("%s", strerror(errno));
 			ret = -errno;
 			goto out_free_job;
 		}
 	} else {
-		job->attr = NULL;
+		job->nix_attr_name = NULL;
 	}
 
 	if (name != NULL) {
@@ -424,7 +425,7 @@ out_free_name:
 		free(job->name);
 out_free_attr:
 	if (ret < 0)
-		free(job->attr);
+		free(job->nix_attr_name);
 out_free_job:
 	if (ret < 0)
 		free(job);
@@ -434,7 +435,7 @@ out_free_job:
 	return ret;
 }
 
-int jobs_init(FILE **stream, const char *expr)
+int jobs_init(FILE **stream, char *expr)
 {
 	size_t argindex;
 	char *args[6];

@@ -5,6 +5,7 @@
 
 #include "htab.h"
 #include "jobs.h"
+#include "solver_util.h"
 
 #ifndef QUEUE_H
 
@@ -16,6 +17,7 @@ typedef enum {
 struct queue {
 	struct job_clist jobs;
 	struct htab *htab;
+	struct job_ids *job_ids;
 	sem_t sem;
 	queue_state_t state;
 	pthread_mutex_t mutex;

@@ -6,6 +6,7 @@
   pkg-config,
   makeWrapper,
   cjson,
+  highs,
 }:
 
 buildPythonPackage {
@@ -36,6 +37,6 @@ buildPythonPackage {
   ];
   buildInputs = [
     cjson
-    # nix-eval-jobs
+    highs
   ];
 }

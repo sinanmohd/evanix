@@ -8,7 +8,4 @@ static struct PyModuleDef module = {
 	PyModuleDef_HEAD_INIT, "evanix", NULL, -1, methods,
 };
 
-PyMODINIT_FUNC PyInit_evanix(void)
-{
-	return PyModule_Create(&module);
-}
+PyMODINIT_FUNC PyInit_evanix(void) { return PyModule_Create(&module); }

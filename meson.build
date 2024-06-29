@@ -19,6 +19,7 @@ add_project_arguments(
 )
 
 cjson_dep = dependency('libcjson')
+highs_dep = dependency('highs')
 evanix_inc = include_directories('include')
 
 if get_option('build-python')

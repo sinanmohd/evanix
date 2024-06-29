@@ -7,10 +7,11 @@ e = executable(
 		'queue.c',
 		'build.c',
 		'htab.c',
+		'solver_util.c',
 	],
 
 	include_directories: evanix_inc,
-	dependencies: cjson_dep,
+	dependencies: [ cjson_dep, highs_dep ],
 	install: true,
 )
 
