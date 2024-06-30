@@ -17,7 +17,7 @@ typedef enum {
 struct queue {
 	struct job_clist jobs;
 	struct htab *htab;
-	struct job_ids *job_ids;
+	struct jobid *jobid;
 	sem_t sem;
 	queue_state_t state;
 	pthread_mutex_t mutex;

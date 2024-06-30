@@ -7,7 +7,7 @@
 #include "solver_util.h"
 #include "util.h"
 
-static int dag_id_assign(struct job *j, struct job_ids *job_ids)
+static int dag_id_assign(struct job *j, struct jobid *jobid)
 {
 	size_t newsize;
 	void *ret;
@@ -16,56 +16,83 @@ static int dag_id_assign(struct job *j, struct job_ids *job_ids)
 		return 0;
 
 	for (size_t i = 0; i < j->deps_filled; i++)
-		return dag_id_assign(j->deps[i], job_ids);
+		return dag_id_assign(j->deps[i], jobid);
 
-	if (job_ids->size < job_ids->filled) {
-		j->id = job_ids->filled++;
-		job_ids->jobs[j->id] = j;
+	if (jobid->size < jobid->filled) {
+		j->id = jobid->filled++;
+		jobid->jobs[j->id] = j;
 		return 0;
 	}
 
-	newsize = job_ids->size == 0 ? 2 : job_ids->size * 2;
-	ret = realloc(job_ids->jobs, newsize * sizeof(*job_ids->jobs));
+	newsize = jobid->size == 0 ? 2 : jobid->size * 2;
+	ret = realloc(jobid->jobs, newsize * sizeof(*jobid->jobs));
 	if (ret == NULL) {
 		print_err("%s", strerror(errno));
 		return -errno;
 	}
-	job_ids->jobs = ret;
+	jobid->jobs = ret;
 
-	j->id = job_ids->filled++;
-	job_ids->jobs[j->id] = j;
+	j->id = jobid->filled++;
+	jobid->jobs[j->id] = j;
 
 	return 0;
 }
 
-int queue_id_assign(struct job_clist *q, struct job_ids **job_ids)
+void jobid_free(struct jobid *jid)
 {
-	struct job_ids *ji;
+	free(jid->cost);
+	free(jid->isdirect);
+	free(jid->jobs);
+	free(jid);
+}
+
+int jobid_init(struct job_clist *q, struct jobid **job_ids)
+{
+	struct jobid *jid;
 	struct job *j;
 	int ret;
 
-	ji = malloc(sizeof(*ji));
-	if (ji == NULL) {
+	jid = malloc(sizeof(*jid));
+	if (jid == NULL) {
 		print_err("%s", strerror(errno));
 		return -errno;
 	}
-	ji->jobs = NULL;
-	ji->size = 0;
-	ji->filled = 0;
+	jid->jobs = NULL;
+	jid->cost = NULL;
+	jid->isdirect = NULL;
+	jid->size = 0;
+	jid->filled = 0;
 
 	CIRCLEQ_FOREACH (j, q, clist) {
-		ret = dag_id_assign(j, ji);
+		ret = dag_id_assign(j, jid);
 		if (ret < 0) {
-			goto out_free_js;
+			goto out_free_jid;
 		}
 	}
 
-out_free_js:
+	jid->isdirect = malloc(jid->filled * sizeof(*jid->isdirect));
+	if (jid->isdirect == NULL) {
+		print_err("%s", strerror(errno));
+		return -errno;
+	}
+	jid->cost = malloc(jid->filled * sizeof(*jid->cost));
+	if (jid->cost == NULL) {
+		print_err("%s", strerror(errno));
+		return -errno;
+	}
+	for (size_t i = 0; i < jid->filled; i++) {
+		jid->isdirect[i] = jid->jobs[i]->scheduled;
+		jid->cost[i] = 1;
+	}
+
+out_free_jid:
 	if (ret < 0) {
-		free(ji->jobs);
-		free(ji);
+		free(jid->cost);
+		free(jid->isdirect);
+		free(jid->jobs);
+		free(jid);
 	} else {
-		*job_ids = ji;
+		*job_ids = jid;
 	}
 
 	return ret;

@@ -221,7 +221,7 @@ int queue_thread_new(struct queue_thread **queue_thread, FILE *stream)
 		ret = -errno;
 		goto out_free_qt;
 	}
-	qt->queue->job_ids = NULL;
+	qt->queue->jobid = NULL;
 	qt->queue->state = Q_SEM_WAIT;
 	ret = sem_init(&qt->queue->sem, 0, 0);
 	if (ret < 0) {
