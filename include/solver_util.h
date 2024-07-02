@@ -8,7 +8,7 @@ struct jobid {
 	struct job **jobs;
 	size_t filled, size;
 	uint32_t *cost;
-	/* user directly asked for this to be build, not a transitively acquired
+	/* user directly asked for this to be built, not a transitively acquired
 	 * dependency */
 	bool *isdirect;
 };

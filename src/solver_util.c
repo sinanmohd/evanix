@@ -7,6 +7,8 @@
 #include "solver_util.h"
 #include "util.h"
 
+static int dag_id_assign(struct job *j, struct jobid *jobid);
+
 static int dag_id_assign(struct job *j, struct jobid *jobid)
 {
 	size_t newsize;

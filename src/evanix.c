@@ -1,5 +1,6 @@
 #include <getopt.h>
 #include <stdlib.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "build.h"
@@ -15,6 +16,7 @@ static const char usage[] =
 	"  -d, --dry-run                   Show what derivations would be "
 	"built.\n"
 	"  -s, --system                    System to build for."
+	"  -m, --max-build                 Max number of builds."
 	"  -p, --pipelined         <bool>  Use evanix build pipeline.\n"
 	"  -c, --close-stderr-exec <bool>  Close stderr on exec.\n"
 	"\n";
@@ -24,6 +26,7 @@ struct evanix_opts_t evanix_opts = {
 	.isflake = false,
 	.ispipelined = true,
 	.isdryrun = false,
+	.max_build = 0,
 	.system = NULL,
 };
 
@@ -102,6 +105,7 @@ int main(int argc, char *argv[])
 		{"flake", no_argument, NULL, 'f'},
 		{"dry-run", no_argument, NULL, 'd'},
 		{"system", required_argument, NULL, 's'},
+		{"max-build", required_argument, NULL, 'm'},
 		{"pipelined", required_argument, NULL, 'p'},
 		{"close-stderr-exec", required_argument, NULL, 'c'},
 		{NULL, 0, NULL, 0},
@@ -122,6 +126,20 @@ int main(int argc, char *argv[])
 			break;
 		case 's':
 			evanix_opts.system = optarg;
+			break;
+		case 'm':
+			ret = atoi(optarg);
+			if (ret <= 0) {
+				fprintf(stderr,
+					"option --%s requires a natural number "
+					"argument\n"
+					"Try 'evanix --help' for more "
+					"information.\n",
+					longopts[longindex].name);
+				exit(EXIT_FAILURE);
+			}
+
+			evanix_opts.max_build = ret;
 			break;
 		case 'p':
 			ret = atob(optarg);

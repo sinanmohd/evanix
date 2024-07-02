@@ -8,6 +8,7 @@ struct evanix_opts_t {
 	bool ispipelined;
 	bool close_stderr_exec;
 	char *system;
+	int max_build;
 };
 
 extern struct evanix_opts_t evanix_opts;
