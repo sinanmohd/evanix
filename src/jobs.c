@@ -368,6 +368,7 @@ static int job_new(struct job **j, char *name, char *drv_path, char *attr,
 		return -errno;
 	}
 	job->scheduled = false;
+	job->stale = false;
 	job->id = -1;
 
 	job->outputs_size = 0;
@@ -454,3 +455,14 @@ int jobs_init(FILE **stream, char *expr)
 	ret = vpopen(stream, "nix-eval-jobs", args);
 	return ret;
 }
+
+void job_stale_set(struct job *job)
+{
+	if (job->stale)
+		return;
+
+	job->stale = true;
+	for (size_t i = 0; i < job->parents_filled; i++)
+		job_stale_set(job->parents[i]);
+}
+
