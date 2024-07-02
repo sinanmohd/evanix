@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include <stdint.h>
 #include <search.h>
 #include <semaphore.h>
 #include <sys/queue.h>
@@ -21,6 +22,7 @@ struct queue {
 	sem_t sem;
 	queue_state_t state;
 	pthread_mutex_t mutex;
+	uint64_t age;
 };
 
 struct queue_thread {

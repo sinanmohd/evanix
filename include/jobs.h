@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <sys/queue.h>
 
@@ -26,6 +27,8 @@ struct job {
 
 	/* solver */
 	ssize_t id;
+	uint64_t age;
+	bool stale;
 };
 CIRCLEQ_HEAD(job_clist, job);
 
@@ -44,6 +47,7 @@ int jobs_init(FILE **stream, char *expr);
 void job_free(struct job *j);
 int job_parents_list_insert(struct job *job, struct job *parent);
 void job_deps_list_rm(struct job *job, struct job *dep);
+void job_stale_set(struct job *job);
 
 #define JOBS_H
 #endif

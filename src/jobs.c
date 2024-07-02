@@ -370,6 +370,7 @@ static int job_new(struct job **j, char *name, char *drv_path, char *attr,
 	job->scheduled = false;
 	job->stale = false;
 	job->id = -1;
+	job->age = 0;
 
 	job->outputs_size = 0;
 	job->outputs_filled = 0;

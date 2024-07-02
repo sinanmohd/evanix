@@ -51,6 +51,30 @@ static int queue_dag_isolate(struct job *job, struct job *keep_parent,
 	return 0;
 }
 
+/* remove a node along with all it's ancestors recursively */
+int queue_ancestors_rm(struct job *job, struct job_clist *jobs,
+		       struct htab *htab)
+{
+	struct job *j;
+	int ret;
+
+	job_stale_set(job);
+	CIRCLEQ_FOREACH(j, jobs, clist) {
+		if (j->stale == false)
+			continue;
+
+		ret = queue_dag_isolate(j, NULL, jobs, htab);
+		if (ret < 0)
+			return ret;
+
+		job_free(j);
+		/* we might have removed j->clist.cqe_next */
+		j = jobs->cqh_last;
+	}
+
+	return 0;
+}
+
 void *queue_thread_entry(void *queue_thread)
 {
 	struct queue_thread *qt = queue_thread;
@@ -221,6 +245,7 @@ int queue_thread_new(struct queue_thread **queue_thread, FILE *stream)
 		ret = -errno;
 		goto out_free_qt;
 	}
+	qt->queue->age = 0;
 	qt->queue->jobid = NULL;
 	qt->queue->state = Q_SEM_WAIT;
 	ret = sem_init(&qt->queue->sem, 0, 0);
