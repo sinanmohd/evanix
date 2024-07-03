@@ -66,6 +66,10 @@ int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
 			conformity_max = conformity_cur;
 			selected = j;
 		}
+		if (conformity_cur == conformity_max &&
+		    selected->deps_filled > j->deps_filled) {
+			selected = j;
+		}
 	}
 
 	if (selected == NULL)
