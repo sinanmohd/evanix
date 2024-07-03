@@ -27,7 +27,6 @@ struct job {
 
 	/* solver */
 	ssize_t id;
-	uint64_t age;
 	bool stale;
 };
 CIRCLEQ_HEAD(job_clist, job);

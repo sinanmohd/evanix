@@ -370,7 +370,6 @@ static int job_new(struct job **j, char *name, char *drv_path, char *attr,
 	job->scheduled = false;
 	job->stale = false;
 	job->id = -1;
-	job->age = 0;
 
 	job->outputs_size = 0;
 	job->outputs_filled = 0;
@@ -466,4 +465,3 @@ void job_stale_set(struct job *job)
 	for (size_t i = 0; i < job->parents_filled; i++)
 		job_stale_set(job->parents[i]);
 }
-

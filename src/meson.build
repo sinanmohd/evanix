@@ -8,6 +8,7 @@ e = executable(
 		'build.c',
 		'htab.c',
 		'solver_util.c',
+		'solver_greedy.c',
 	],
 
 	include_directories: evanix_inc,

@@ -5,7 +5,9 @@
 #include <string.h>
 #include <sys/queue.h>
 
+#include "evanix.h"
 #include "queue.h"
+#include "solver_greedy.h"
 #include "util.h"
 
 #define MAX_NIX_PKG_COUNT 200000
@@ -51,6 +53,18 @@ static int queue_dag_isolate(struct job *job, struct job *keep_parent,
 	return 0;
 }
 
+int queue_isempty(struct job_clist *jobs)
+{
+	struct job *j;
+
+	CIRCLEQ_FOREACH (j, jobs, clist) {
+		if (j->stale == false)
+			return false;
+	}
+
+	return true;
+}
+
 /* remove a node along with all it's ancestors recursively */
 int queue_ancestors_rm(struct job *job, struct job_clist *jobs,
 		       struct htab *htab)
@@ -59,7 +73,7 @@ int queue_ancestors_rm(struct job *job, struct job_clist *jobs,
 	int ret;
 
 	job_stale_set(job);
-	CIRCLEQ_FOREACH(j, jobs, clist) {
+	CIRCLEQ_FOREACH (j, jobs, clist) {
 		if (j->stale == false)
 			continue;
 
@@ -107,8 +121,7 @@ void *queue_thread_entry(void *queue_thread)
 int queue_pop(struct queue *queue, struct job **job, struct htab *htab)
 {
 	int ret;
-
-	struct job *j = CIRCLEQ_FIRST(&queue->jobs);
+	struct job *j;
 
 	if (CIRCLEQ_EMPTY(&queue->jobs)) {
 		print_err("%s", "Empty queue");
@@ -116,6 +129,13 @@ int queue_pop(struct queue *queue, struct job **job, struct htab *htab)
 	}
 
 	pthread_mutex_lock(&queue->mutex);
+	if (evanix_opts.max_build) {
+		ret = solver_greedy(&queue->jobs, &queue->resources, &j);
+		if (ret < 0)
+			return ret;
+	} else {
+		j = CIRCLEQ_FIRST(&queue->jobs);
+	}
 	ret = queue_dag_isolate(j, NULL, &queue->jobs, htab);
 	if (ret < 0)
 		return ret;
@@ -245,7 +265,7 @@ int queue_thread_new(struct queue_thread **queue_thread, FILE *stream)
 		ret = -errno;
 		goto out_free_qt;
 	}
-	qt->queue->age = 0;
+	qt->queue->resources = evanix_opts.max_build;
 	qt->queue->jobid = NULL;
 	qt->queue->state = Q_SEM_WAIT;
 	ret = sem_init(&qt->queue->sem, 0, 0);

@@ -25,7 +25,7 @@ void *build_thread_entry(void *build_thread)
 			goto out;
 		}
 
-		if (CIRCLEQ_EMPTY(&bt->queue->jobs)) {
+		if (queue_isempty(&bt->queue->jobs)) {
 			if (bt->queue->state == Q_ITS_OVER)
 				goto out;
 			else if (bt->queue->state == Q_SEM_WAIT)
@@ -51,6 +51,8 @@ static int build(struct queue *queue)
 	char out_link[NAME_MAX] = "result";
 
 	ret = queue_pop(queue, &job, queue->htab);
+	if (ret == -ESRCH)
+		return EAGAIN;
 	if (ret < 0)
 		return ret;
 

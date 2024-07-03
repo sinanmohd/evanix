@@ -4,6 +4,7 @@ IndentCaseLabels: false
 
 AlignConsecutiveMacros: true
 AllowShortIfStatementsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
 
 ContinuationIndentWidth: 8
 IndentWidth: 8

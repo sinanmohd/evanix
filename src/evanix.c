@@ -1,6 +1,5 @@
 #include <getopt.h>
 #include <stdlib.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "build.h"
@@ -15,8 +14,8 @@ static const char usage[] =
 	"  -f, --flake                     Build a flake.\n"
 	"  -d, --dry-run                   Show what derivations would be "
 	"built.\n"
-	"  -s, --system                    System to build for."
-	"  -m, --max-build                 Max number of builds."
+	"  -s, --system                    System to build for.\n"
+	"  -m, --max-build                 Max number of builds.\n"
 	"  -p, --pipelined         <bool>  Use evanix build pipeline.\n"
 	"  -c, --close-stderr-exec <bool>  Close stderr on exec.\n"
 	"\n";
