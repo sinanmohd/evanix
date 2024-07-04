@@ -132,17 +132,20 @@ int queue_pop(struct queue *queue, struct job **job, struct htab *htab)
 	if (evanix_opts.max_build) {
 		ret = solver_greedy(&queue->jobs, &queue->resources, &j);
 		if (ret < 0)
-			return ret;
+			goto out_mutex_unlock;
 	} else {
 		j = CIRCLEQ_FIRST(&queue->jobs);
 	}
 	ret = queue_dag_isolate(j, NULL, &queue->jobs, htab);
 	if (ret < 0)
-		return ret;
+		goto out_mutex_unlock;
+
+out_mutex_unlock:
 	pthread_mutex_unlock(&queue->mutex);
 
-	*job = j;
-	return 0;
+	if (ret >= 0)
+		*job = j;
+	return ret;
 }
 
 /* this merge functions are closely tied to the output characteristics of
