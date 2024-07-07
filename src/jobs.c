@@ -10,6 +10,15 @@
 #include "jobs.h"
 #include "util.h"
 
+#ifndef NIX_EVAL_JOBS_PATH
+#warning "NIX_EVAL_JOBS_PATH not defined, evanix will rely on PATH instead"
+#define NIX_EVAL_JOBS_PATH nix-eval-jobs
+#endif
+
+#define XSTR(x) STR(x)
+#define STR(x) #x
+#pragma message  "NIX_EVAL_JOBS_PATH=" XSTR(NIX_EVAL_JOBS_PATH)
+
 static void output_free(struct output *output);
 static int job_new(struct job **j, char *name, char *drv_path, char *attr,
 		   struct job *parent);
@@ -443,7 +452,9 @@ int jobs_init(FILE **stream, char *expr)
 	int ret;
 
 	argindex = 0;
-	args[argindex++] = "nix-eval-jobs";
+
+	args[argindex++] = XSTR(NIX_EVAL_JOBS_PATH);
+
 	args[argindex++] = "--check-cache-status";
 	args[argindex++] = "--force-recurse";
 	if (evanix_opts.isflake)
@@ -452,7 +463,8 @@ int jobs_init(FILE **stream, char *expr)
 	args[argindex++] = NULL;
 
 	/* the package is wrapProgram-ed with nix-eval-jobs  */
-	ret = vpopen(stream, "nix-eval-jobs", args);
+	ret = vpopen(stream, XSTR(NIX_EVAL_JOBS_PATH), args);
+
 	return ret;
 }
 
