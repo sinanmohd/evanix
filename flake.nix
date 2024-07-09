@@ -67,10 +67,9 @@
               highs
             ];
 
-            postInstall = ''
-              wrapProgram $out/bin/evanix \
-                  --prefix PATH : ${lib.makeBinPath [ pkgs.nix-eval-jobs ]}
-            '';
+            mesonFlags = [
+              (lib.mesonOption "NIX_EVAL_JOBS_PATH" (lib.getExe pkgs.nix-eval-jobs))
+            ];
 
             meta = {
               homepage = "https://git.sinanmohd.com/evanix";

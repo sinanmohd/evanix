@@ -1,1 +1,2 @@
 option('build-python', type: 'boolean', value: 'false')
+option('NIX_EVAL_JOBS_PATH', type: 'string', value: 'nix-eval-jobs')
