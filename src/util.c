@@ -42,7 +42,7 @@ out_free_line:
 	return ret;
 }
 
-int vpopen(FILE **stream, const char *file, char *const argv[])
+int vpopen(FILE **stream, const char *file, char *const argv[], vpopen_t type)
 {
 	int fd[2], ret;
 	int nullfd = -1;
@@ -72,19 +72,25 @@ int vpopen(FILE **stream, const char *file, char *const argv[])
 	}
 
 	close(fd[0]);
-	ret = dup2(fd[1], STDOUT_FILENO);
+	if (type == VPOPEN_STDOUT)
+		ret = dup2(fd[1], STDOUT_FILENO);
+	else
+		ret = dup2(fd[1], STDERR_FILENO);
 	if (ret < 0) {
 		print_err("%s", strerror(errno));
 		goto out_close_fd_1;
 	}
 
-	if (evanix_opts.close_stderr_exec) {
+	if (evanix_opts.close_unused_fd) {
 		nullfd = open("/dev/null", O_WRONLY);
 		if (nullfd < 0) {
 			print_err("%s", strerror(errno));
 			goto out_close_fd_1;
 		}
-		ret = dup2(nullfd, STDERR_FILENO);
+		if (type == VPOPEN_STDOUT)
+			ret = dup2(nullfd, STDERR_FILENO);
+		else
+			ret = dup2(nullfd, STDOUT_FILENO);
 		if (ret < 0) {
 			print_err("%s", strerror(errno));
 			goto out_close_nullfd;

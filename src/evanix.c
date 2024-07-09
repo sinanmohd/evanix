@@ -17,11 +17,11 @@ static const char usage[] =
 	"  -s, --system                    System to build for.\n"
 	"  -m, --max-build                 Max number of builds.\n"
 	"  -p, --pipelined         <bool>  Use evanix build pipeline.\n"
-	"  -c, --close-stderr-exec <bool>  Close stderr on exec.\n"
+	"  -c, --close-unused-fd   <bool>  Close stderr on exec.\n"
 	"\n";
 
 struct evanix_opts_t evanix_opts = {
-	.close_stderr_exec = true,
+	.close_unused_fd = true,
 	.isflake = false,
 	.ispipelined = true,
 	.isdryrun = false,
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 
-			evanix_opts.close_stderr_exec = ret;
+			evanix_opts.close_unused_fd = ret;
 			break;
 		default:
 			fprintf(stderr,

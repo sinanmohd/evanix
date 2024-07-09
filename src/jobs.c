@@ -257,7 +257,7 @@ int job_read(FILE *stream, struct job **job)
 
 	temp = cJSON_GetObjectItemCaseSensitive(root, "error");
 	if (cJSON_IsString(temp)) {
-		if (evanix_opts.close_stderr_exec)
+		if (evanix_opts.close_unused_fd)
 			puts(temp->valuestring);
 		ret = JOB_READ_EVAL_ERR;
 		goto out_free;
@@ -463,7 +463,7 @@ int jobs_init(FILE **stream, char *expr)
 	args[argindex++] = NULL;
 
 	/* the package is wrapProgram-ed with nix-eval-jobs  */
-	ret = vpopen(stream, XSTR(NIX_EVAL_JOBS_PATH), args);
+	ret = vpopen(stream, XSTR(NIX_EVAL_JOBS_PATH), args, VPOPEN_STDOUT);
 
 	return ret;
 }
