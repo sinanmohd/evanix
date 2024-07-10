@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -137,4 +138,12 @@ int run(const char *file, char *argv[])
 			return -EPERM;
 		return WEXITSTATUS(wstatus) == 0 ? 0 : -EPERM;
 	}
+}
+
+char *trim(char *s)
+{
+	while (isspace(*s))
+		s++;
+
+	return s;
 }

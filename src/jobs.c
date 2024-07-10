@@ -12,12 +12,12 @@
 
 #ifndef NIX_EVAL_JOBS_PATH
 #warning "NIX_EVAL_JOBS_PATH not defined, evanix will rely on PATH instead"
-#define NIX_EVAL_JOBS_PATH nix-eval-jobs
+#define NIX_EVAL_JOBS_PATH nix - eval - jobs
 #endif
 
 #define XSTR(x) STR(x)
-#define STR(x) #x
-#pragma message  "NIX_EVAL_JOBS_PATH=" XSTR(NIX_EVAL_JOBS_PATH)
+#define STR(x)	#x
+#pragma message "NIX_EVAL_JOBS_PATH=" XSTR(NIX_EVAL_JOBS_PATH)
 
 static void output_free(struct output *output);
 static int job_new(struct job **j, char *name, char *drv_path, char *attr,
@@ -214,30 +214,85 @@ static int job_read_outputs(struct job *job, cJSON *outputs)
 	return 0;
 }
 
-static int job_read_cache(struct job *job, cJSON *is_cached)
+/* for nix-eval-jobs output only, for dag use the htab instead */
+struct job *job_search(struct job *job, const char *drv)
 {
-	int ret;
+	if (strcmp(drv, job->drv_path))
+		return job;
 
-	if (cJSON_IsFalse(is_cached)) {
-		job->insubstituters = false;
-		return JOB_READ_SUCCESS;
+	for (size_t i = 0; i < job->deps_filled; i++) {
+		if (strcmp(drv, job->deps[i]->drv_path))
+			return job->deps[i];
 	}
 
-	for (size_t i = 0; i < job->outputs_filled; i++) {
-		ret = access(job->outputs[i]->store_path, F_OK);
-		if (ret == 0)
+	return NULL;
+}
+
+static int job_read_cache(struct job *job)
+{
+	size_t argindex, n;
+	FILE *nix_build_stream;
+	char *args[4];
+	int ret, nlines;
+	struct job *j;
+
+	char *line = NULL;
+	argindex = 0;
+	args[argindex++] = "nix-build";
+	args[argindex++] = "--dry-run";
+	args[argindex++] = job->drv_path;
+	args[argindex++] = NULL;
+
+	ret = vpopen(&nix_build_stream, "nix-build", args, VPOPEN_STDERR);
+	if (ret < 0)
+		return ret;
+
+	errno = 0;
+	nlines = 0;
+	for (bool in_fetched_block = false;
+	     getline(&line, &n, nix_build_stream) >= 0; nlines++) {
+		if (strstr(line, "will be built")) {
 			continue;
-
-		if (errno == ENOENT || errno == ENOTDIR) {
-			job->insubstituters = true;
-			return JOB_READ_SUCCESS;
-		} else {
-			print_err("%s", strerror(errno));
-			return --errno;
+		} else if (strstr(line, "will be fetched")) {
+			in_fetched_block = true;
+			continue;
 		}
+
+		j = job_search(job, trim(line));
+		if (j == NULL) {
+			/* bug in nix-eval-jobs or nix-build */
+			print_err("%s", "could not find job");
+			ret = -ESRCH;
+			goto out_free_line;
+		}
+
+		if (in_fetched_block)
+			j->insubstituters = true;
+		else
+			j->insubstituters = false;
+
+		j->stale = false;
+	}
+	if (errno != 0) {
+		print_err("%s", strerror(errno));
+		ret = -errno;
+		goto out_free_line;
+	} else if (errno == 0 && nlines == 0) {
+		ret = JOB_READ_CACHED;
+		goto out_free_line;
 	}
 
-	return JOB_READ_CACHED;
+	/* remove stale deps */
+	for (size_t i = 0; i < job->deps_filled; i++) {
+		if (job->deps[i]->stale)
+			job_free(job->deps[i]);
+	}
+
+out_free_line:
+	free(line);
+	fclose(nix_build_stream);
+
+	return ret;
 }
 
 int job_read(FILE *stream, struct job **job)
@@ -319,12 +374,7 @@ int job_read(FILE *stream, struct job **job)
 	if (ret < 0)
 		goto out_free;
 
-	temp = cJSON_GetObjectItemCaseSensitive(root, "isCached");
-	if (!cJSON_IsBool(temp)) {
-		ret = JOB_READ_JSON_INVAL;
-		goto out_free;
-	}
-	ret = job_read_cache(j, temp);
+	ret = job_read_cache(j);
 	if (ret < 0)
 		goto out_free;
 
@@ -377,7 +427,8 @@ static int job_new(struct job **j, char *name, char *drv_path, char *attr,
 		return -errno;
 	}
 	job->scheduled = false;
-	job->stale = false;
+	/* unset by job_read_cache() */
+	job->stale = true;
 	job->id = -1;
 
 	job->outputs_size = 0;
@@ -448,14 +499,11 @@ out_free_job:
 int jobs_init(FILE **stream, char *expr)
 {
 	size_t argindex;
-	char *args[6];
+	char *args[5];
 	int ret;
 
 	argindex = 0;
-
 	args[argindex++] = XSTR(NIX_EVAL_JOBS_PATH);
-
-	args[argindex++] = "--check-cache-status";
 	args[argindex++] = "--force-recurse";
 	if (evanix_opts.isflake)
 		args[argindex++] = "--flake";

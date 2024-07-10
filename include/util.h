@@ -13,13 +13,11 @@
 		(cur) = (next);                                                \
 	}
 
-typedef enum {
-	VPOPEN_STDERR,
-	VPOPEN_STDOUT
-} vpopen_t;
+typedef enum { VPOPEN_STDERR, VPOPEN_STDOUT } vpopen_t;
 
 int vpopen(FILE **stream, const char *file, char *const argv[], vpopen_t type);
 
 int json_streaming_read(FILE *stream, cJSON **json);
 int atob(const char *s);
 int run(const char *file, char *argv[]);
+char *trim(char *s);
