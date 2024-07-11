@@ -142,12 +142,12 @@ int run(const char *file, char *argv[])
 
 char *trim(char *s)
 {
-	size_t end, i;
+	size_t end = 0;
 
 	while (isspace(*s))
 		s++;
 
-	for (i = 0, end = 0; s[i]; i++) {
+	for (size_t i = 0; s[i]; i++) {
 		if (isgraph(s[i]))
 			end = i + 1;
 	}
