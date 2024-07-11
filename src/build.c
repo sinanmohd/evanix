@@ -74,6 +74,8 @@ static int build(struct queue *queue)
 	args[argindex++] = NULL;
 
 	if (evanix_opts.isdryrun) {
+		if (evanix_opts.solver_report)
+			printf("🛠️ ");
 		for (size_t i = 0; i < argindex - 1; i++)
 			printf("%s%c", args[i],
 			       (i + 2 == argindex) ? '\n' : ' ');
