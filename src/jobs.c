@@ -231,11 +231,11 @@ static int job_read_outputs(struct job *job, cJSON *outputs)
 /* for nix-eval-jobs output only, for dag use the htab instead */
 struct job *job_search(struct job *job, const char *drv)
 {
-	if (strcmp(drv, job->drv_path))
+	if (!strcmp(drv, job->drv_path))
 		return job;
 
 	for (size_t i = 0; i < job->deps_filled; i++) {
-		if (strcmp(drv, job->deps[i]->drv_path))
+		if (!strcmp(drv, job->deps[i]->drv_path))
 			return job->deps[i];
 	}
 
@@ -274,10 +274,8 @@ static int job_read_cache(struct job *job)
 
 		j = job_search(job, trim(line));
 		if (j == NULL) {
-			/* bug in nix-eval-jobs or nix-build */
-			print_err("%s", "could not find job");
-			ret = -ESRCH;
-			goto out_free_line;
+			/* nix-eval-jobs doesn't count src */
+			continue;
 		}
 
 		if (in_fetched_block)
@@ -297,9 +295,11 @@ static int job_read_cache(struct job *job)
 	}
 
 	/* remove stale deps */
-	for (size_t i = 0; i < job->deps_filled; i++) {
+	for (size_t i = 0; i < job->deps_filled;) {
 		if (job->deps[i]->stale)
 			job_free(job->deps[i]);
+		else
+			i++;
 	}
 
 out_free_line:
