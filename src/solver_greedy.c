@@ -8,7 +8,6 @@
 #include "util.h"
 
 static float conformity(struct job *job);
-static int32_t builds_isolated(struct job *job);
 
 /* conformity is a ratio between number of direct feasible derivations sharing
  * dependencies of a derivation and total number of dependencies */
@@ -36,11 +35,6 @@ static float conformity(struct job *job)
 	return conformity;
 }
 
-static int32_t builds_isolated(struct job *job)
-{
-	return job->deps_filled + 1;
-}
-
 static void solver_report(struct job *job, int32_t max_build)
 {
 	if (!evanix_opts.solver_report)
@@ -49,8 +43,8 @@ static void solver_report(struct job *job, int32_t max_build)
 		return;
 
 	job->reported = true;
-	printf("❌ cost: %2d > %2d <-> %s -> %s\n", builds_isolated(job),
-	       max_build, job->name, job->drv_path);
+	printf("❌ cost: %2d > %2d <-> %s -> %s\n", job_cost(job), max_build,
+	       job->name, job->drv_path);
 
 	for (size_t i = 0; i < job->parents_filled; i++)
 		solver_report(job->parents[i], max_build);
@@ -67,7 +61,7 @@ int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
 	CIRCLEQ_FOREACH (j, q, clist) {
 		if (j->stale) {
 			continue;
-		} else if (builds_isolated(j) > *max_build) {
+		} else if (job_cost(j) > *max_build) {
 			job_stale_set(j);
 			solver_report(j, *max_build);
 			continue;
@@ -90,8 +84,7 @@ int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
 		if (!evanix_opts.solver_report)
 			continue;
 		printf("ℹ️ cost: %2d, conformity: %.2f <-> %s -> %s\n",
-		       builds_isolated(j), conformity_cur, j->name,
-		       j->drv_path);
+		       job_cost(j), conformity_cur, j->name, j->drv_path);
 	}
 
 	if (selected == NULL)
@@ -99,9 +92,9 @@ int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
 
 	if (evanix_opts.solver_report)
 		printf("✅ cost: %2d, conformity: %.2f <-> %s -> %s\n",
-		       builds_isolated(selected), conformity_max,
-		       selected->name, selected->drv_path);
-	*max_build -= builds_isolated(selected);
+		       job_cost(selected), conformity_max, selected->name,
+		       selected->drv_path);
+	*max_build -= job_cost(selected);
 	*job = selected;
 	return 0;
 }

@@ -123,6 +123,20 @@ int job_parents_list_insert(struct job *job, struct job *parent)
 	return 0;
 }
 
+int job_cost(struct job *job)
+{
+	int32_t builds = 0;
+
+	for (size_t i = 0; i < job->deps_filled; i++) {
+		if (job->deps[i]->insubstituters)
+			continue;
+
+		builds++;
+	}
+
+	return builds;
+}
+
 static int job_output_insert(struct job *j, char *name, char *store_path)
 {
 	struct output *o;
