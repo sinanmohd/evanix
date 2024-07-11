@@ -7,6 +7,7 @@ struct evanix_opts_t {
 	bool isflake;
 	bool isdryrun;
 	bool ispipelined;
+	bool solver_report;
 	bool close_unused_fd;
 	char *system;
 	uint32_t max_build;

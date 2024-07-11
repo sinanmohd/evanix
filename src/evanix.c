@@ -16,6 +16,7 @@ static const char usage[] =
 	"built.\n"
 	"  -s, --system                    System to build for.\n"
 	"  -m, --max-build                 Max number of builds.\n"
+	"  -r, --solver-report             Print solver report.\n"
 	"  -p, --pipelined         <bool>  Use evanix build pipeline.\n"
 	"  -c, --close-unused-fd   <bool>  Close stderr on exec.\n"
 	"\n";
@@ -27,6 +28,7 @@ struct evanix_opts_t evanix_opts = {
 	.isdryrun = false,
 	.max_build = 0,
 	.system = NULL,
+	.solver_report = false,
 };
 
 static int evanix(char *expr);
@@ -104,6 +106,7 @@ int main(int argc, char *argv[])
 		{"flake", no_argument, NULL, 'f'},
 		{"dry-run", no_argument, NULL, 'd'},
 		{"system", required_argument, NULL, 's'},
+		{"solver-report", no_argument, NULL, 'r'},
 		{"max-build", required_argument, NULL, 'm'},
 		{"pipelined", required_argument, NULL, 'p'},
 		{"close-stderr-exec", required_argument, NULL, 'c'},
@@ -125,6 +128,9 @@ int main(int argc, char *argv[])
 			break;
 		case 's':
 			evanix_opts.system = optarg;
+			break;
+		case 'r':
+			evanix_opts.solver_report = true;
 			break;
 		case 'm':
 			ret = atoi(optarg);

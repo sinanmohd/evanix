@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <queue.h>
 
+#include "evanix.h"
 #include "jobs.h"
 #include "queue.h"
 #include "solver_greedy.h"
@@ -40,6 +41,21 @@ static int32_t builds_isolated(struct job *job)
 	return job->deps_filled + 1;
 }
 
+static void solver_report(struct job *job, int32_t max_build)
+{
+	if (!evanix_opts.solver_report)
+		return;
+	else if (job->reported)
+		return;
+
+	job->reported = true;
+	printf("❌ cost: %2d > %2d <-> %s -> %s\n", builds_isolated(job),
+	       max_build, job->name, job->drv_path);
+
+	for (size_t i = 0; i < job->parents_filled; i++)
+		solver_report(job->parents[i], max_build);
+}
+
 int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
 {
 	struct job *j;
@@ -53,6 +69,7 @@ int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
 			continue;
 		} else if (builds_isolated(j) > *max_build) {
 			job_stale_set(j);
+			solver_report(j, *max_build);
 			continue;
 		}
 	}
@@ -69,11 +86,21 @@ int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
 			   selected->deps_filled > j->deps_filled) {
 			selected = j;
 		}
+
+		if (!evanix_opts.solver_report)
+			continue;
+		printf("ℹ️ cost: %2d, conformity: %.2f <-> %s -> %s\n",
+		       builds_isolated(j), conformity_cur, j->name,
+		       j->drv_path);
 	}
 
 	if (selected == NULL)
 		return -ESRCH;
 
+	if (evanix_opts.solver_report)
+		printf("✅ cost: %2d, conformity: %.2f <-> %s -> %s\n",
+		       builds_isolated(selected), conformity_max,
+		       selected->name, selected->drv_path);
 	*max_build -= builds_isolated(selected);
 	*job = selected;
 	return 0;

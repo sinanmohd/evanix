@@ -65,30 +65,6 @@ int queue_isempty(struct job_clist *jobs)
 	return true;
 }
 
-/* remove a node along with all it's ancestors recursively */
-int queue_ancestors_rm(struct job *job, struct job_clist *jobs,
-		       struct htab *htab)
-{
-	struct job *j;
-	int ret;
-
-	job_stale_set(job);
-	CIRCLEQ_FOREACH (j, jobs, clist) {
-		if (j->stale == false)
-			continue;
-
-		ret = queue_dag_isolate(j, NULL, jobs, htab);
-		if (ret < 0)
-			return ret;
-
-		job_free(j);
-		/* we might have removed j->clist.cqe_next */
-		j = jobs->cqh_last;
-	}
-
-	return 0;
-}
-
 void *queue_thread_entry(void *queue_thread)
 {
 	struct queue_thread *qt = queue_thread;
