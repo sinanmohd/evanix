@@ -125,7 +125,7 @@ int job_parents_list_insert(struct job *job, struct job *parent)
 
 int job_cost(struct job *job)
 {
-	int32_t builds = 0;
+	int32_t builds = 1;
 
 	for (size_t i = 0; i < job->deps_filled; i++) {
 		if (job->deps[i]->insubstituters)
