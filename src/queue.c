@@ -204,14 +204,20 @@ static int queue_push(struct queue *queue, struct job *job)
 
 void queue_thread_free(struct queue_thread *queue_thread)
 {
-	struct job *cur, *next;
+	struct job *j;
 	int ret;
 
 	if (queue_thread == NULL)
 		return;
 
-	CIRCLEQ_FOREACH_FREE(cur, next, &queue_thread->queue->jobs, clist,
-			     job_free);
+	while (!CIRCLEQ_EMPTY(&queue_thread->queue->jobs)) {
+		j = CIRCLEQ_FIRST(&queue_thread->queue->jobs);
+		ret = queue_dag_isolate(j, NULL, &queue_thread->queue->jobs,
+					queue_thread->queue->htab);
+		if (ret < 0)
+			return;
+		job_free(j);
+	}
 
 	htab_free(queue_thread->queue->htab);
 	ret = sem_destroy(&queue_thread->queue->sem);
