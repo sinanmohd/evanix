@@ -514,12 +514,11 @@ out_free_job:
 int jobs_init(FILE **stream, char *expr)
 {
 	size_t argindex;
-	char *args[5];
+	char *args[4];
 	int ret;
 
 	argindex = 0;
 	args[argindex++] = XSTR(NIX_EVAL_JOBS_PATH);
-	args[argindex++] = "--force-recurse";
 	if (evanix_opts.isflake)
 		args[argindex++] = "--flake";
 	args[argindex++] = expr;
