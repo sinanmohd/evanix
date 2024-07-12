@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 		{"solver-report", no_argument, NULL, 'r'},
 		{"max-build", required_argument, NULL, 'm'},
 		{"pipelined", required_argument, NULL, 'p'},
-		{"close-stderr-exec", required_argument, NULL, 'c'},
+		{"close-unused-fd", required_argument, NULL, 'c'},
 		{NULL, 0, NULL, 0},
 	};
 
