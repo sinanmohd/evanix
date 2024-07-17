@@ -31,7 +31,26 @@ struct evanix_opts_t evanix_opts = {
 	.solver_report = false,
 };
 
+static int evanix_build_thread_create(struct build_thread *build_thread);
 static int evanix(char *expr);
+
+/* This function returns errno on failure, consistent with the POSIX threads
+ * functions, rather than returning -errno. */
+static int evanix_build_thread_create(struct build_thread *build_thread)
+{
+	int ret;
+
+	ret = pthread_create(&build_thread->tid, NULL, build_thread_entry,
+			     build_thread);
+	if (ret != 0)
+		return ret;
+
+	ret = pthread_setname_np(build_thread->tid, "evanix_build");
+	if (ret != 0)
+		return ret;
+
+	return 0;
+}
 
 static int evanix(char *expr)
 {
@@ -58,17 +77,21 @@ static int evanix(char *expr)
 
 	ret = pthread_create(&queue_thread->tid, NULL, queue_thread_entry,
 			     queue_thread);
-	if (ret < 0) {
+	if (ret != 0) {
+		print_err("%s", strerror(ret));
+		goto out_free;
+	}
+	ret = pthread_setname_np(queue_thread->tid, "evanix_queue");
+	if (ret != 0) {
 		print_err("%s", strerror(ret));
 		goto out_free;
 	}
 
 	if (evanix_opts.ispipelined)
-		ret = pthread_create(&build_thread->tid, NULL,
-				     build_thread_entry, build_thread);
+		ret = evanix_build_thread_create(build_thread);
 	else
 		ret = pthread_join(queue_thread->tid, NULL);
-	if (ret < 0) {
+	if (ret != 0) {
 		print_err("%s", strerror(ret));
 		goto out_free;
 	}
@@ -76,15 +99,14 @@ static int evanix(char *expr)
 	if (evanix_opts.ispipelined)
 		ret = pthread_join(queue_thread->tid, NULL);
 	else
-		ret = pthread_create(&build_thread->tid, NULL,
-				     build_thread_entry, build_thread);
-	if (ret < 0) {
+		ret = evanix_build_thread_create(build_thread);
+	if (ret != 0) {
 		print_err("%s", strerror(ret));
 		goto out_free;
 	}
 
 	ret = pthread_join(build_thread->tid, NULL);
-	if (ret < 0) {
+	if (ret != 0) {
 		print_err("%s", strerror(ret));
 		goto out_free;
 	}
