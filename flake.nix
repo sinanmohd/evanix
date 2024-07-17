@@ -39,6 +39,8 @@
               ccls
               valgrind
               clang-tools # clang-format
+              flamegraph
+              linuxKernel.packages.linux_6_6.perf
             ];
 
             shellHook = ''
