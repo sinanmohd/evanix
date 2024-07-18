@@ -50,7 +50,7 @@ static int build(struct queue *queue)
 
 	char out_link[NAME_MAX] = "result";
 
-	ret = queue_pop(queue, &job, queue->htab);
+	ret = queue_pop(queue, &job);
 	if (ret == -ESRCH)
 		return EAGAIN;
 	if (ret < 0)

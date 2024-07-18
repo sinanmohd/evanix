@@ -7,6 +7,7 @@
   makeWrapper,
   cjson,
   highs,
+  uthash,
 }:
 
 buildPythonPackage {
@@ -38,5 +39,6 @@ buildPythonPackage {
   buildInputs = [
     cjson
     highs
+    uthash
   ];
 }

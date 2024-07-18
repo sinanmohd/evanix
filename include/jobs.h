@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/queue.h>
+#include <uthash.h>
 
 #ifndef JOBS_H
 
@@ -21,6 +22,7 @@ struct job {
 	struct job **deps;
 	size_t parents_size, parents_filled;
 	struct job **parents;
+	UT_hash_handle hh;
 
 	/* queue */
 	CIRCLEQ_ENTRY(job) clist;

@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <sys/queue.h>
 
-#include "htab.h"
 #include "jobs.h"
 #include "solver_util.h"
 
@@ -20,7 +19,7 @@ struct queue {
 	sem_t sem;
 	queue_state_t state;
 	pthread_mutex_t mutex;
-	struct htab *htab;
+	struct job *htab;
 
 	/* solver */
 	struct jobid *jobid;
@@ -36,7 +35,7 @@ struct queue_thread {
 int queue_thread_new(struct queue_thread **queue_thread, FILE *stream);
 void queue_thread_free(struct queue_thread *queue_thread);
 void *queue_thread_entry(void *queue_thread);
-int queue_pop(struct queue *queue, struct job **job, struct htab *htab);
+int queue_pop(struct queue *queue, struct job **job);
 int queue_isempty(struct job_clist *jobs);
 
 #define QUEUE_H

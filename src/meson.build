@@ -7,7 +7,6 @@ e = executable(
 		'util.c',
 		'queue.c',
 		'build.c',
-		'htab.c',
 		'solver_util.c',
 		'solver_greedy.c',
 	],

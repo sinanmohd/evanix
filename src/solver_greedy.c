@@ -83,8 +83,8 @@ int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
 
 		if (!evanix_opts.solver_report)
 			continue;
-		printf("ℹ️ cost: %2d, conformity: %.2f -> %s\n",
-		       job_cost(j), conformity_cur, j->drv_path);
+		printf("ℹ️ cost: %2d, conformity: %.2f -> %s\n", job_cost(j),
+		       conformity_cur, j->drv_path);
 	}
 
 	if (selected == NULL)

@@ -29,6 +29,7 @@
               jq
               highs
               cjson
+              uthash
               nix-eval-jobs
 
               pkg-config
@@ -59,6 +60,7 @@
 
             src = ./.;
             nativeBuildInputs = with pkgs; [
+              uthash
               meson
               ninja
               pkg-config

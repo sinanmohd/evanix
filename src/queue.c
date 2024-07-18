@@ -13,12 +13,12 @@
 #define MAX_NIX_PKG_COUNT 200000
 
 static int queue_push(struct queue *queue, struct job *job);
-static int queue_htab_job_merge(struct job **job, struct htab *htab);
+static int queue_htab_job_merge(struct job **job, struct job **htab);
 static int queue_dag_isolate(struct job *job, struct job *keep_parent,
-			     struct job_clist *jobs, struct htab *htab);
+			     struct job_clist *jobs, struct job **htab);
 
 static int queue_dag_isolate(struct job *job, struct job *keep_parent,
-			     struct job_clist *jobs, struct htab *htab)
+			     struct job_clist *jobs, struct job **htab)
 {
 	int ret;
 
@@ -46,9 +46,7 @@ static int queue_dag_isolate(struct job *job, struct job *keep_parent,
 	if (job->scheduled)
 		CIRCLEQ_REMOVE(jobs, job, clist);
 
-	ret = htab_delete(htab, job->drv_path);
-	if (ret < 0)
-		return ret;
+	HASH_DEL(*htab, job);
 
 	return 0;
 }
@@ -94,7 +92,7 @@ void *queue_thread_entry(void *queue_thread)
 	pthread_exit(NULL);
 }
 
-int queue_pop(struct queue *queue, struct job **job, struct htab *htab)
+int queue_pop(struct queue *queue, struct job **job)
 {
 	int ret;
 	struct job *j;
@@ -112,7 +110,7 @@ int queue_pop(struct queue *queue, struct job **job, struct htab *htab)
 	} else {
 		j = CIRCLEQ_FIRST(&queue->jobs);
 	}
-	ret = queue_dag_isolate(j, NULL, &queue->jobs, htab);
+	ret = queue_dag_isolate(j, NULL, &queue->jobs, &queue->htab);
 	if (ret < 0)
 		goto out_mutex_unlock;
 
@@ -130,19 +128,15 @@ out_mutex_unlock:
  * - only childrens or dependencies have parent node
  * - only root node have dependencies
  */
-static int queue_htab_job_merge(struct job **job, struct htab *htab)
+static int queue_htab_job_merge(struct job **job, struct job **htab)
 {
-	struct job *jtab;
-	ENTRY *ep;
 	int ret;
+	struct job *jtab = NULL;
+	struct job *j = *job;
 
-	ret = htab_search(htab, (*job)->drv_path, &ep);
-	if (ret < 0) {
-		return ret;
-	} else if (ret == ESRCH) {
-		ret = htab_enter(htab, (*job)->drv_path, *job);
-		if (ret < 0)
-			return ret;
+	HASH_FIND_STR(*htab, j->drv_path, jtab);
+	if (jtab == NULL) {
+		HASH_ADD_STR(*htab, drv_path, j);
 
 		for (size_t i = 0; i < (*job)->deps_filled; i++) {
 			ret = queue_htab_job_merge(&(*job)->deps[i], htab);
@@ -155,7 +149,6 @@ static int queue_htab_job_merge(struct job **job, struct htab *htab)
 
 	/* if it's already inside htab, it's deps should also be in htab, hence
 	 * not merging deps */
-	jtab = ep->data;
 	if (jtab->name == NULL) {
 		/* steal name from new job struct */
 		jtab->name = (*job)->name;
@@ -185,7 +178,7 @@ static int queue_push(struct queue *queue, struct job *job)
 	int ret;
 
 	pthread_mutex_lock(&queue->mutex);
-	ret = queue_htab_job_merge(&job, queue->htab);
+	ret = queue_htab_job_merge(&job, &queue->htab);
 	if (ret < 0) {
 		pthread_mutex_unlock(&queue->mutex);
 		return ret;
@@ -213,13 +206,12 @@ void queue_thread_free(struct queue_thread *queue_thread)
 	while (!CIRCLEQ_EMPTY(&queue_thread->queue->jobs)) {
 		j = CIRCLEQ_FIRST(&queue_thread->queue->jobs);
 		ret = queue_dag_isolate(j, NULL, &queue_thread->queue->jobs,
-					queue_thread->queue->htab);
+					&queue_thread->queue->htab);
 		if (ret < 0)
 			return;
 		job_free(j);
 	}
 
-	htab_free(queue_thread->queue->htab);
 	ret = sem_destroy(&queue_thread->queue->sem);
 	if (ret < 0)
 		print_err("%s", strerror(errno));
@@ -250,6 +242,7 @@ int queue_thread_new(struct queue_thread **queue_thread, FILE *stream)
 		ret = -errno;
 		goto out_free_qt;
 	}
+	qt->queue->htab = NULL;
 	qt->queue->resources = evanix_opts.max_build;
 	qt->queue->jobid = NULL;
 	qt->queue->state = Q_SEM_WAIT;
@@ -260,16 +253,9 @@ int queue_thread_new(struct queue_thread **queue_thread, FILE *stream)
 		goto out_free_queue;
 	}
 
-	ret = htab_init(MAX_NIX_PKG_COUNT, &qt->queue->htab);
-	if (ret < 0)
-		goto out_free_sem;
-
 	CIRCLEQ_INIT(&qt->queue->jobs);
 	pthread_mutex_init(&qt->queue->mutex, NULL);
 
-out_free_sem:
-	if (ret < 0)
-		sem_destroy(&qt->queue->sem);
 out_free_queue:
 	if (ret < 0)
 		free(qt->queue);
