@@ -138,8 +138,8 @@ static int queue_htab_job_merge(struct job **job, struct job **htab)
 	if (jtab == NULL) {
 		HASH_ADD_STR(*htab, drv_path, j);
 
-		for (size_t i = 0; i < (*job)->deps_filled; i++) {
-			ret = queue_htab_job_merge(&(*job)->deps[i], htab);
+		for (size_t i = 0; i < j->deps_filled; i++) {
+			ret = queue_htab_job_merge(&j->deps[i], htab);
 			if (ret < 0)
 				return ret;
 		}
@@ -151,8 +151,8 @@ static int queue_htab_job_merge(struct job **job, struct job **htab)
 	 * not merging deps */
 	if (jtab->name == NULL) {
 		/* steal name from new job struct */
-		jtab->name = (*job)->name;
-		(*job)->name = NULL;
+		jtab->name = j->name;
+		j->name = NULL;
 	}
 
 	/* only recursive calls with childrens or dependencies can enter this
@@ -161,11 +161,11 @@ static int queue_htab_job_merge(struct job **job, struct job **htab)
 	 * - update parent's reference to point to jtab (done by *job = jtab)
 	 * - insert the parent to jtab
 	 */
-	if ((*job)->parents_filled > 0) {
-		ret = job_parents_list_insert(jtab, (*job)->parents[0]);
+	if (j->parents_filled > 0) {
+		ret = job_parents_list_insert(jtab, j->parents[0]);
 		if (ret < 0)
 			return ret;
-		(*job)->parents_filled = 0;
+		j->parents_filled = 0;
 	}
 
 	job_free(*job);
