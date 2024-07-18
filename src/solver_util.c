@@ -52,7 +52,7 @@ int jobid_init(struct job_clist *q, struct jobid **job_ids)
 {
 	struct jobid *jid;
 	struct job *j;
-	int ret;
+	int ret = 0;
 
 	jid = malloc(sizeof(*jid));
 	if (jid == NULL) {
