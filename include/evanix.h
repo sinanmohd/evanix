@@ -9,6 +9,7 @@ struct evanix_opts_t {
 	bool ispipelined;
 	bool solver_report;
 	bool close_unused_fd;
+	bool cache_status;
 	char *system;
 	uint32_t max_build;
 };

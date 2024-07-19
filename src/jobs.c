@@ -388,9 +388,11 @@ int job_read(FILE *stream, struct job **job)
 	if (ret < 0)
 		goto out_free;
 
-	ret = job_read_cache(j);
-	if (ret < 0)
-		goto out_free;
+	if (evanix_opts.cache_status) {
+		ret = job_read_cache(j);
+		if (ret < 0)
+			goto out_free;
+	}
 
 out_free:
 	cJSON_Delete(root);
@@ -441,8 +443,6 @@ static int job_new(struct job **j, char *name, char *drv_path, char *attr,
 		return -errno;
 	}
 	job->scheduled = false;
-	/* unset by job_read_cache() */
-	job->stale = true;
 	job->reported = false;
 	job->id = -1;
 
@@ -457,6 +457,13 @@ static int job_new(struct job **j, char *name, char *drv_path, char *attr,
 	job->parents_size = 0;
 	job->parents_filled = 0;
 	job->parents = NULL;
+
+	if (evanix_opts.cache_status) {
+		job->stale = true;
+	} else {
+		job->insubstituters = false;
+		job->stale = false;
+	}
 
 	if (attr != NULL) {
 		job->nix_attr_name = strdup(attr);
