@@ -10,16 +10,16 @@
 static const char usage[] =
 	"Usage: evanix [options] expr\n"
 	"\n"
-	"  -h, --help                      Show help message and quit.\n"
-	"  -f, --flake                     Build a flake.\n"
-	"  -d, --dry-run                   Show what derivations would be "
+	"  -h, --help                       Show help message and quit.\n"
+	"  -f, --flake                      Build a flake.\n"
+	"  -d, --dry-run                    Show what derivations would be "
 	"built.\n"
-	"  -s, --system                    System to build for.\n"
-	"  -m, --max-build                 Max number of builds.\n"
-	"  -r, --solver-report             Print solver report.\n"
-	"  -p, --pipelined         <bool>  Use evanix build pipeline.\n"
-	"  -l, --cache-status      <bool>  Perform cache locality check.\n"
-	"  -c, --close-unused-fd   <bool>  Close stderr on exec.\n"
+	"  -s, --system                     System to build for.\n"
+	"  -m, --max-build                  Max number of builds.\n"
+	"  -r, --solver-report              Print solver report.\n"
+	"  -p, --pipelined          <bool>  Use evanix build pipeline.\n"
+	"  -l, --check_cache-status <bool>  Perform cache locality check.\n"
+	"  -c, --close-unused-fd    <bool>  Close stderr on exec.\n"
 	"\n";
 
 struct evanix_opts_t evanix_opts = {
@@ -30,7 +30,7 @@ struct evanix_opts_t evanix_opts = {
 	.max_build = 0,
 	.system = NULL,
 	.solver_report = false,
-	.cache_status = true,
+	.check_cache_status = true,
 };
 
 static int evanix_build_thread_create(struct build_thread *build_thread);
@@ -133,8 +133,8 @@ int main(int argc, char *argv[])
 		{"solver-report", no_argument, NULL, 'r'},
 		{"max-build", required_argument, NULL, 'm'},
 		{"pipelined", required_argument, NULL, 'p'},
-		{"cache-status", required_argument, NULL, 'l'},
 		{"close-unused-fd", required_argument, NULL, 'c'},
+		{"check-cache-status", required_argument, NULL, 'l'},
 		{NULL, 0, NULL, 0},
 	};
 
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
 				exit(EXIT_FAILURE);
 			}
 
-			evanix_opts.cache_status = ret;
+			evanix_opts.check_cache_status = ret;
 			break;
 		default:
 			fprintf(stderr,
