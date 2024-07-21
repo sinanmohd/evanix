@@ -1,6 +1,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "jobs.h"
+
 #ifndef EVANIX_H
 
 struct evanix_opts_t {
@@ -12,6 +14,7 @@ struct evanix_opts_t {
 	bool check_cache_status;
 	char *system;
 	uint32_t max_build;
+	int (*solver)(struct job **, struct job_clist *, int32_t);
 };
 
 extern struct evanix_opts_t evanix_opts;

@@ -103,13 +103,11 @@ int queue_pop(struct queue *queue, struct job **job)
 	}
 
 	pthread_mutex_lock(&queue->mutex);
-	if (evanix_opts.max_build) {
-		ret = solver_greedy(&queue->jobs, &queue->resources, &j);
-		if (ret < 0)
-			goto out_mutex_unlock;
-	} else {
-		j = CIRCLEQ_FIRST(&queue->jobs);
-	}
+	ret = evanix_opts.solver(&j, &queue->jobs, queue->resources);
+	if (ret < 0)
+		goto out_mutex_unlock;
+	else if (evanix_opts.max_build)
+		queue->resources -= ret;
 	ret = queue_dag_isolate(j, NULL, &queue->jobs, &queue->htab);
 	if (ret < 0)
 		goto out_mutex_unlock;

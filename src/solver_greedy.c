@@ -35,7 +35,7 @@ static float conformity(struct job *job)
 	return conformity;
 }
 
-static void solver_report(struct job *job, int32_t max_build)
+static void solver_report(struct job *job, int32_t resources)
 {
 	if (!evanix_opts.solver_report)
 		return;
@@ -43,14 +43,14 @@ static void solver_report(struct job *job, int32_t max_build)
 		return;
 
 	job->reported = true;
-	printf("❌ cost: %2d > %2d <-> %s -> %s\n", job_cost(job), max_build,
+	printf("❌ cost: %2d > %2d <-> %s -> %s\n", job_cost(job), resources,
 	       job->name, job->drv_path);
 
 	for (size_t i = 0; i < job->parents_filled; i++)
-		solver_report(job->parents[i], max_build);
+		solver_report(job->parents[i], resources);
 }
 
-int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
+int solver_greedy(struct job **job, struct job_clist *q, int32_t resources)
 {
 	struct job *j;
 	float conformity_cur;
@@ -61,9 +61,9 @@ int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
 	CIRCLEQ_FOREACH (j, q, clist) {
 		if (j->stale) {
 			continue;
-		} else if (job_cost(j) > *max_build) {
+		} else if (job_cost(j) > resources) {
 			job_stale_set(j);
-			solver_report(j, *max_build);
+			solver_report(j, resources);
 			continue;
 		}
 	}
@@ -90,7 +90,6 @@ int solver_greedy(struct job_clist *q, int32_t *max_build, struct job **job)
 	if (selected == NULL)
 		return -ESRCH;
 
-	*max_build -= job_cost(selected);
 	*job = selected;
-	return 0;
+	return job_cost(selected);
 }

@@ -5,6 +5,8 @@
 #include "build.h"
 #include "evanix.h"
 #include "queue.h"
+#include "solver_greedy.h"
+#include "solver_util.h"
 #include "util.h"
 
 static const char usage[] =
@@ -20,6 +22,7 @@ static const char usage[] =
 	"  -p, --pipelined          <bool>  Use evanix build pipeline.\n"
 	"  -l, --check_cache-status <bool>  Perform cache locality check.\n"
 	"  -c, --close-unused-fd    <bool>  Close stderr on exec.\n"
+	"  -k, --solver        fcfs|greedy  Solver to use.\n"
 	"\n";
 
 struct evanix_opts_t evanix_opts = {
@@ -31,6 +34,7 @@ struct evanix_opts_t evanix_opts = {
 	.system = NULL,
 	.solver_report = false,
 	.check_cache_status = true,
+	.solver = solver_fcfs,
 };
 
 static int evanix_build_thread_create(struct build_thread *build_thread);
@@ -129,6 +133,7 @@ int main(int argc, char *argv[])
 		{"help", no_argument, NULL, 'h'},
 		{"flake", no_argument, NULL, 'f'},
 		{"dry-run", no_argument, NULL, 'd'},
+		{"solver", required_argument, NULL, 'k'},
 		{"system", required_argument, NULL, 's'},
 		{"solver-report", no_argument, NULL, 'r'},
 		{"max-build", required_argument, NULL, 'm'},
@@ -138,7 +143,7 @@ int main(int argc, char *argv[])
 		{NULL, 0, NULL, 0},
 	};
 
-	while ((c = getopt_long(argc, argv, "hfds:r::m:p:c:l:", longopts,
+	while ((c = getopt_long(argc, argv, "hfds:r::m:p:c:l:k:", longopts,
 				&longindex)) != -1) {
 		switch (c) {
 		case 'h':
@@ -156,6 +161,21 @@ int main(int argc, char *argv[])
 			break;
 		case 'r':
 			evanix_opts.solver_report = true;
+			break;
+		case 'k':
+			if (!strcmp(optarg, "greedy")) {
+				evanix_opts.solver = solver_greedy;
+			} else if (!strcmp(optarg, "fcfs")) {
+				evanix_opts.solver = solver_fcfs;
+			} else {
+				fprintf(stderr,
+					"option -%c has an invalid solver "
+					"argument\n"
+					"Try 'evanix --help' for more "
+					"information.\n",
+					c);
+				exit(EXIT_FAILURE);
+			}
 			break;
 		case 'm':
 			ret = atoi(optarg);
