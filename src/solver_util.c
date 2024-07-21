@@ -99,15 +99,3 @@ out_free_jid:
 
 	return ret;
 }
-
-int solver_fcfs(struct job **job, struct job_clist *q,
-		__attribute__((unused)) int32_t resources)
-{
-	if (CIRCLEQ_EMPTY(q)) {
-		print_err("%s", "Trying to pop from empty queue");
-		return -ESRCH;
-	}
-
-	*job = CIRCLEQ_FIRST(q);
-	return 0;
-}

@@ -22,7 +22,7 @@ static const char usage[] =
 	"  -p, --pipelined          <bool>  Use evanix build pipeline.\n"
 	"  -l, --check_cache-status <bool>  Perform cache locality check.\n"
 	"  -c, --close-unused-fd    <bool>  Close stderr on exec.\n"
-	"  -k, --solver        fcfs|greedy  Solver to use.\n"
+	"  -k, --solver             greedy  Solver to use.\n"
 	"\n";
 
 struct evanix_opts_t evanix_opts = {
@@ -34,7 +34,7 @@ struct evanix_opts_t evanix_opts = {
 	.system = NULL,
 	.solver_report = false,
 	.check_cache_status = true,
-	.solver = solver_fcfs,
+	.solver = solver_greedy,
 };
 
 static int evanix_build_thread_create(struct build_thread *build_thread);
@@ -165,8 +165,6 @@ int main(int argc, char *argv[])
 		case 'k':
 			if (!strcmp(optarg, "greedy")) {
 				evanix_opts.solver = solver_greedy;
-			} else if (!strcmp(optarg, "fcfs")) {
-				evanix_opts.solver = solver_fcfs;
 			} else {
 				fprintf(stderr,
 					"option -%c has an invalid solver "
