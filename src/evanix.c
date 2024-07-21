@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 {
 	extern int optind, opterr, optopt;
 	extern char *optarg;
-	int ret, longindex;
+	int ret, longindex, c;
 
 	static struct option longopts[] = {
 		{"help", no_argument, NULL, 'h'},
@@ -138,9 +138,9 @@ int main(int argc, char *argv[])
 		{NULL, 0, NULL, 0},
 	};
 
-	while ((ret = getopt_long(argc, argv, "", longopts, &longindex)) !=
-	       -1) {
-		switch (ret) {
+	while ((c = getopt_long(argc, argv, "hfds:r::m:p:c:l:", longopts,
+				&longindex)) != -1) {
+		switch (c) {
 		case 'h':
 			printf("%s", usage);
 			exit(EXIT_SUCCESS);
@@ -161,11 +161,11 @@ int main(int argc, char *argv[])
 			ret = atoi(optarg);
 			if (ret <= 0) {
 				fprintf(stderr,
-					"option --%s requires a natural number "
+					"option -%c requires a natural number "
 					"argument\n"
 					"Try 'evanix --help' for more "
 					"information.\n",
-					longopts[longindex].name);
+					c);
 				exit(EXIT_FAILURE);
 			}
 
@@ -175,10 +175,10 @@ int main(int argc, char *argv[])
 			ret = atob(optarg);
 			if (ret < 0) {
 				fprintf(stderr,
-					"option --%s requires a bool argument\n"
+					"option -%c requires a bool argument\n"
 					"Try 'evanix --help' for more "
 					"information.\n",
-					longopts[longindex].name);
+					c);
 				exit(EXIT_FAILURE);
 			}
 
@@ -188,10 +188,10 @@ int main(int argc, char *argv[])
 			ret = atob(optarg);
 			if (ret < 0) {
 				fprintf(stderr,
-					"option --%s requires a bool argument\n"
+					"option -%c requires a bool argument\n"
 					"Try 'evanix --help' for more "
 					"information.\n",
-					longopts[longindex].name);
+					c);
 				exit(EXIT_FAILURE);
 			}
 
@@ -201,10 +201,10 @@ int main(int argc, char *argv[])
 			ret = atob(optarg);
 			if (ret < 0) {
 				fprintf(stderr,
-					"option --%s requires a bool argument\n"
+					"option -%c requires a bool argument\n"
 					"Try 'evanix --help' for more "
 					"information.\n",
-					longopts[longindex].name);
+					c);
 				exit(EXIT_FAILURE);
 			}
 
