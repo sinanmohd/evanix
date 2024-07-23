@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "jobs.h"
-#include "solver_util.h"
+#include "jobid.h"
 #include "util.h"
 
 static int dag_id_assign(struct job *j, struct jobid *jobid);
@@ -42,13 +42,11 @@ static int dag_id_assign(struct job *j, struct jobid *jobid)
 
 void jobid_free(struct jobid *jid)
 {
-	free(jid->cost);
-	free(jid->isdirect);
 	free(jid->jobs);
 	free(jid);
 }
 
-int jobid_init(struct job_clist *q, struct jobid **job_ids)
+int jobid_init(struct job_clist *q, struct jobid **jobid)
 {
 	struct jobid *jid;
 	struct job *j;
@@ -60,8 +58,6 @@ int jobid_init(struct job_clist *q, struct jobid **job_ids)
 		return -errno;
 	}
 	jid->jobs = NULL;
-	jid->cost = NULL;
-	jid->isdirect = NULL;
 	jid->size = 0;
 	jid->filled = 0;
 
@@ -72,29 +68,12 @@ int jobid_init(struct job_clist *q, struct jobid **job_ids)
 		}
 	}
 
-	jid->isdirect = malloc(jid->filled * sizeof(*jid->isdirect));
-	if (jid->isdirect == NULL) {
-		print_err("%s", strerror(errno));
-		return -errno;
-	}
-	jid->cost = malloc(jid->filled * sizeof(*jid->cost));
-	if (jid->cost == NULL) {
-		print_err("%s", strerror(errno));
-		return -errno;
-	}
-	for (size_t i = 0; i < jid->filled; i++) {
-		jid->isdirect[i] = jid->jobs[i]->scheduled;
-		jid->cost[i] = 1;
-	}
-
 out_free_jid:
 	if (ret < 0) {
-		free(jid->cost);
-		free(jid->isdirect);
 		free(jid->jobs);
 		free(jid);
 	} else {
-		*job_ids = jid;
+		*jobid = jid;
 	}
 
 	return ret;

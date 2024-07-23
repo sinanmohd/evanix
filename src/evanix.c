@@ -6,7 +6,6 @@
 #include "evanix.h"
 #include "queue.h"
 #include "solver_greedy.h"
-#include "solver_util.h"
 #include "util.h"
 
 static const char usage[] =

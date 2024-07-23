@@ -5,7 +5,6 @@
 #include <sys/queue.h>
 
 #include "jobs.h"
-#include "solver_util.h"
 
 #ifndef QUEUE_H
 
