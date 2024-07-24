@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <errno.h>
 #include <highs/interfaces/highs_c_api.h>
 #include <math.h>
@@ -53,10 +52,6 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 	for (size_t i = 0; i < jobid->filled; i++)
 		col_upper[i] = 1.0;
 
-	integrality = malloc(jobid->filled * sizeof(*integrality));
-	for (size_t i = 0; i < jobid->filled; i++)
-		integrality[i] = 1;
-
 	highs = Highs_create();
 	ret = Highs_setBoolOptionValue(highs, "output_flag", 1);
 	if (ret != kHighsStatusOk) {
@@ -64,6 +59,7 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 		ret = -EPERM;
 		goto out_free_col_profit;
 	}
+
 	ret = Highs_addCols(highs, jobid->filled, col_profit, col_lower,
 			    col_upper, 0, NULL, NULL, NULL);
 	if (ret != kHighsStatusOk) {
@@ -91,8 +87,8 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 	for (size_t i = 0; i < jobid->filled; i++)
 		constraint_value[i] = 1.0;
 
-	ret = Highs_addRow(highs, 0, resources, jobid->filled + 1,
-			   constraint_index, constraint_value);
+	ret = Highs_addRow(highs, 0, resources, jobid->filled, constraint_index,
+			   constraint_value);
 	if (ret != kHighsStatusOk) {
 		print_err("%s", "highs did not return kHighsStatusOk");
 		ret = -EPERM;
@@ -101,7 +97,7 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 
 	/* set precedance constraints */
 	CIRCLEQ_FOREACH (j, q, clist) {
-		for (size_t i = 0; i < j->deps_filled; j++) {
+		for (size_t i = 0; i < j->deps_filled; i++) {
 			/* follow the CSR matrix structure */
 			if (j->id < j->deps[i]->id) {
 				precedence_index[0] = j->id;
@@ -127,6 +123,15 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 		ret = -EPERM;
 		goto out_free_col_profit;
 	}
+
+	integrality = malloc(jobid->filled * sizeof(*integrality));
+	if (integrality == NULL) {
+		print_err("%s", strerror(errno));
+		ret = -errno;
+		goto out_free_col_profit;
+	}
+	for (size_t i = 0; i < jobid->filled; i++)
+		integrality[i] = 1;
 	ret = Highs_changeColsIntegralityByMask(highs, integrality,
 						integrality);
 	if (ret != kHighsStatusOk) {
@@ -134,6 +139,7 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 		ret = -EPERM;
 		goto out_free_col_profit;
 	}
+
 	ret = Highs_run(highs);
 	if (ret != kHighsStatusOk) {
 		print_err("%s", "highs did not return kHighsStatusOk");
@@ -199,7 +205,7 @@ int solver_highs(struct job **job, struct job_clist *q, int32_t resources)
 	if (ret < 0)
 		goto out_free_jobid;
 
-	for (size_t i = 0; i < jobid->size; i++) {
+	for (size_t i = 0; i < jobid->filled; i++) {
 		if (solution[i] == 0.0)
 			job_stale_set(jobid->jobs[i]);
 	}

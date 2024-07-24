@@ -1,7 +1,7 @@
+#include <errno.h>
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #include "build.h"
 #include "evanix.h"
