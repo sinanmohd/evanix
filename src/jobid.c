@@ -18,9 +18,9 @@ static int dag_id_assign(struct job *j, struct jobid *jobid)
 		return 0;
 
 	for (size_t i = 0; i < j->deps_filled; i++)
-		return dag_id_assign(j->deps[i], jobid);
+		dag_id_assign(j->deps[i], jobid);
 
-	if (jobid->size < jobid->filled) {
+	if (jobid->filled < jobid->size) {
 		j->id = jobid->filled++;
 		jobid->jobs[j->id] = j;
 		return 0;
@@ -66,9 +66,8 @@ int jobid_init(struct job_clist *q, struct jobid **jobid)
 
 	CIRCLEQ_FOREACH (j, q, clist) {
 		ret = dag_id_assign(j, jid);
-		if (ret < 0) {
+		if (ret < 0)
 			goto out_free_jid;
-		}
 	}
 
 out_free_jid:
