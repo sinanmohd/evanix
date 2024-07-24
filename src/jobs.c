@@ -123,7 +123,7 @@ int job_parents_list_insert(struct job *job, struct job *parent)
 	return 0;
 }
 
-int job_cost(struct job *job)
+int job_cost_recursive(struct job *job)
 {
 	int32_t builds = 1;
 

@@ -43,8 +43,8 @@ static void solver_report(struct job *job, int32_t resources)
 		return;
 
 	job->reported = true;
-	printf("❌ cost: %2d > %2d <-> %s -> %s\n", job_cost(job), resources,
-	       job->name, job->drv_path);
+	printf("❌ cost: %2d > %2d <-> %s -> %s\n", job_cost_recursive(job),
+	       resources, job->name, job->drv_path);
 
 	for (size_t i = 0; i < job->parents_filled; i++)
 		solver_report(job->parents[i], resources);
@@ -61,7 +61,7 @@ int solver_greedy(struct job **job, struct job_clist *q, int32_t resources)
 	CIRCLEQ_FOREACH (j, q, clist) {
 		if (j->stale) {
 			continue;
-		} else if (job_cost(j) > resources) {
+		} else if (job_cost_recursive(j) > resources) {
 			job_stale_set(j);
 			solver_report(j, resources);
 			continue;
@@ -83,13 +83,13 @@ int solver_greedy(struct job **job, struct job_clist *q, int32_t resources)
 
 		if (!evanix_opts.solver_report)
 			continue;
-		printf("ℹ️ cost: %2d, conformity: %.2f -> %s\n", job_cost(j),
-		       conformity_cur, j->drv_path);
+		printf("ℹ️ cost: %2d, conformity: %.2f -> %s\n",
+		       job_cost_recursive(j), conformity_cur, j->drv_path);
 	}
 
 	if (selected == NULL)
 		return -ESRCH;
 
 	*job = selected;
-	return job_cost(selected);
+	return job_cost_recursive(selected);
 }
