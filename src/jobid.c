@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "jobs.h"
 #include "jobid.h"
+#include "jobs.h"
 #include "util.h"
 
 static int dag_id_assign(struct job *j, struct jobid *jobid);
@@ -42,6 +42,9 @@ static int dag_id_assign(struct job *j, struct jobid *jobid)
 
 void jobid_free(struct jobid *jid)
 {
+	if (jid == NULL)
+		return;
+
 	free(jid->jobs);
 	free(jid);
 }

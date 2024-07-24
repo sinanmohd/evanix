@@ -9,6 +9,7 @@ e = executable(
 		'build.c',
 		'jobid.c',
 		'solver_greedy.c',
+		'solver_highs.c',
 	],
 
 	include_directories: evanix_inc,

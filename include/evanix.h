@@ -12,6 +12,7 @@ struct evanix_opts_t {
 	bool solver_report;
 	bool close_unused_fd;
 	bool check_cache_status;
+	bool break_evanix;
 	char *system;
 	uint32_t max_build;
 	int (*solver)(struct job **, struct job_clist *, int32_t);

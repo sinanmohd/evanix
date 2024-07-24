@@ -1,11 +1,13 @@
 #include <getopt.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 #include "build.h"
 #include "evanix.h"
 #include "queue.h"
 #include "solver_greedy.h"
+#include "solver_highs.h"
 #include "util.h"
 
 static const char usage[] =
@@ -17,11 +19,12 @@ static const char usage[] =
 	"built.\n"
 	"  -s, --system                     System to build for.\n"
 	"  -m, --max-build                  Max number of builds.\n"
+	"  -b, --break-evanix               Enable experimental features.\n"
 	"  -r, --solver-report              Print solver report.\n"
 	"  -p, --pipelined          <bool>  Use evanix build pipeline.\n"
 	"  -l, --check_cache-status <bool>  Perform cache locality check.\n"
 	"  -c, --close-unused-fd    <bool>  Close stderr on exec.\n"
-	"  -k, --solver             greedy  Solver to use.\n"
+	"  -k, --solver       highs|greedy  Solver to use.\n"
 	"\n";
 
 struct evanix_opts_t evanix_opts = {
@@ -34,6 +37,7 @@ struct evanix_opts_t evanix_opts = {
 	.solver_report = false,
 	.check_cache_status = true,
 	.solver = solver_greedy,
+	.break_evanix = false,
 };
 
 static int evanix_build_thread_create(struct build_thread *build_thread);
@@ -122,7 +126,7 @@ out_free:
 	return ret;
 }
 
-int main(int argc, char *argv[])
+int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 {
 	extern int optind, opterr, optopt;
 	extern char *optarg;
@@ -132,6 +136,7 @@ int main(int argc, char *argv[])
 		{"help", no_argument, NULL, 'h'},
 		{"flake", no_argument, NULL, 'f'},
 		{"dry-run", no_argument, NULL, 'd'},
+		{"break-evanix", no_argument, NULL, 'b'},
 		{"solver", required_argument, NULL, 'k'},
 		{"system", required_argument, NULL, 's'},
 		{"solver-report", no_argument, NULL, 'r'},
@@ -147,23 +152,28 @@ int main(int argc, char *argv[])
 		switch (c) {
 		case 'h':
 			printf("%s", usage);
-			exit(EXIT_SUCCESS);
+			return -EINVAL;
 			break;
 		case 'f':
-			evanix_opts.isflake = true;
+			opts->isflake = true;
+			break;
+		case 'b':
+			opts->break_evanix = true;
 			break;
 		case 'd':
-			evanix_opts.isdryrun = true;
+			opts->isdryrun = true;
 			break;
 		case 's':
-			evanix_opts.system = optarg;
+			opts->system = optarg;
 			break;
 		case 'r':
-			evanix_opts.solver_report = true;
+			opts->solver_report = true;
 			break;
 		case 'k':
 			if (!strcmp(optarg, "greedy")) {
-				evanix_opts.solver = solver_greedy;
+				opts->solver = solver_greedy;
+			} else if (!strcmp(optarg, "highs")) {
+				opts->solver = solver_highs;
 			} else {
 				fprintf(stderr,
 					"option -%c has an invalid solver "
@@ -171,7 +181,7 @@ int main(int argc, char *argv[])
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				exit(EXIT_FAILURE);
+				return -EINVAL;
 			}
 			break;
 		case 'm':
@@ -183,10 +193,10 @@ int main(int argc, char *argv[])
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				exit(EXIT_FAILURE);
+				return -EINVAL;
 			}
 
-			evanix_opts.max_build = ret;
+			opts->max_build = ret;
 			break;
 		case 'p':
 			ret = atob(optarg);
@@ -196,10 +206,10 @@ int main(int argc, char *argv[])
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				exit(EXIT_FAILURE);
+				return -EINVAL;
 			}
 
-			evanix_opts.ispipelined = ret;
+			opts->ispipelined = ret;
 			break;
 		case 'c':
 			ret = atob(optarg);
@@ -209,10 +219,10 @@ int main(int argc, char *argv[])
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				exit(EXIT_FAILURE);
+				return -EINVAL;
 			}
 
-			evanix_opts.close_unused_fd = ret;
+			opts->close_unused_fd = ret;
 			break;
 		case 'l':
 			ret = atob(optarg);
@@ -222,23 +232,42 @@ int main(int argc, char *argv[])
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				exit(EXIT_FAILURE);
+				return -EINVAL;
 			}
 
-			evanix_opts.check_cache_status = ret;
+			opts->check_cache_status = ret;
 			break;
 		default:
 			fprintf(stderr,
 				"Try 'evanix --help' for more information.\n");
-			exit(EXIT_FAILURE);
+			return -EINVAL;
 			break;
 		}
 	}
 	if (optind != argc - 1) {
 		fprintf(stderr, "evanix: invalid expr operand\n"
 				"Try 'evanix --help' for more information.\n");
-		exit(EXIT_FAILURE);
+		return -EINVAL;
 	}
+
+	if (opts->solver == solver_highs && !opts->break_evanix) {
+		fprintf(stderr,
+			"Running --solver=highs without --break-evanix\n");
+		return -EINVAL;
+	}
+
+	*expr = argv[optind];
+	return 0;
+}
+
+int main(int argc, char *argv[])
+{
+	char *expr;
+	int ret;
+
+	ret = opts_read(&evanix_opts, &expr, argc, argv);
+	if (ret < 0)
+		exit(EXIT_FAILURE);
 
 	ret = evanix(argv[optind]);
 	if (ret < 0)
