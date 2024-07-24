@@ -250,10 +250,14 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 		return -EINVAL;
 	}
 
-	if (opts->solver == solver_highs && !opts->break_evanix) {
-		fprintf(stderr,
-			"Running --solver=highs without --break-evanix\n");
-		return -EINVAL;
+	if (opts->solver == solver_highs) {
+		if (opts->break_evanix == false) {
+			fprintf(stderr, "Running --solver=highs without "
+					"--break-evanix\n");
+			return -EINVAL;
+		}
+
+		opts->ispipelined = false;
 	}
 
 	*expr = argv[optind];
