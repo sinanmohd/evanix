@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "evanix.h"
 #include "jobid.h"
 #include "solver_highs.h"
 #include "util.h"
@@ -53,7 +54,11 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 		col_upper[i] = 1.0;
 
 	highs = Highs_create();
-	ret = Highs_setBoolOptionValue(highs, "output_flag", 1);
+
+	if (evanix_opts.solver_report)
+		ret = Highs_setBoolOptionValue(highs, "output_flag", 1);
+	else
+		ret = Highs_setBoolOptionValue(highs, "output_flag", 0);
 	if (ret != kHighsStatusOk) {
 		print_err("%s", "highs did not return kHighsStatusOk");
 		ret = -EPERM;
