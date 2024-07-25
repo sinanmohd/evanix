@@ -191,6 +191,7 @@ int solver_highs(struct job **job, struct job_clist *q, int32_t resources)
 	static bool solved = false;
 	struct jobid *jobid = NULL;
 	double *solution = NULL;
+	struct job *j;
 	int ret = 0;
 
 	if (solved)
@@ -214,6 +215,15 @@ int solver_highs(struct job **job, struct job_clist *q, int32_t resources)
 	for (size_t i = 0; i < jobid->filled; i++) {
 		if (solution[i] == 0.0)
 			job_stale_set(jobid->jobs[i]);
+	}
+
+	if (evanix_opts.solver_report) {
+		CIRCLEQ_FOREACH (j, q, clist) {
+			if (j->stale) {
+				printf("❌ refusing to build %s, cost: %d\n",
+				       j->drv_path, job_cost_recursive(j));
+			}
+		}
 	}
 
 	solved = true;
