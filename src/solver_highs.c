@@ -152,6 +152,7 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 		ret = -EPERM;
 		goto out_free_col_profit;
 	}
+	Highs_destroy(highs);
 
 out_free_col_profit:
 	free(col_profit);
