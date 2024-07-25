@@ -8,6 +8,7 @@
 #include "queue.h"
 #include "solver_conformity.h"
 #include "solver_highs.h"
+#include "solver_sjf.h"
 #include "util.h"
 
 static const char usage[] =
@@ -24,7 +25,7 @@ static const char usage[] =
 	"  -p, --pipelined            <bool>  Use evanix build pipeline.\n"
 	"  -l, --check_cache-status   <bool>  Perform cache locality check.\n"
 	"  -c, --close-unused-fd      <bool>  Close stderr on exec.\n"
-	"  -k, --solver     conformity|highs  Solver to use.\n"
+	"  -k, --solver sjf|conformity|highs  Solver to use.\n"
 	"\n";
 
 struct evanix_opts_t evanix_opts = {
@@ -174,6 +175,8 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 				opts->solver = solver_conformity;
 			} else if (!strcmp(optarg, "highs")) {
 				opts->solver = solver_highs;
+			} else if (!strcmp(optarg, "sjf")) {
+				opts->solver = solver_sjf;
 			} else {
 				fprintf(stderr,
 					"option -%c has an invalid solver "

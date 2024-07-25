@@ -10,6 +10,7 @@ e = executable(
 		'jobid.c',
 		'solver_conformity.c',
 		'solver_highs.c',
+		'solver_sjf.c',
 	],
 
 	include_directories: evanix_inc,
