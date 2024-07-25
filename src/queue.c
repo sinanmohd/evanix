@@ -7,7 +7,7 @@
 
 #include "evanix.h"
 #include "queue.h"
-#include "solver_greedy.h"
+#include "solver_conformity.h"
 #include "util.h"
 
 #define MAX_NIX_PKG_COUNT 200000

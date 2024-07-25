@@ -8,14 +8,14 @@ e = executable(
 		'queue.c',
 		'build.c',
 		'jobid.c',
-		'solver_greedy.c',
+		'solver_conformity.c',
 		'solver_highs.c',
 	],
 
 	include_directories: evanix_inc,
 	dependencies: [ cjson_dep, highs_dep ],
 	install: true,
-    c_args: [f'-DNIX_EVAL_JOBS_PATH=@NIX_EVAL_JOBS_PATH@'],
+	c_args: [f'-DNIX_EVAL_JOBS_PATH=@NIX_EVAL_JOBS_PATH@'],
 )
 
 test('evanix', e)

@@ -6,25 +6,25 @@
 #include "build.h"
 #include "evanix.h"
 #include "queue.h"
-#include "solver_greedy.h"
+#include "solver_conformity.h"
 #include "solver_highs.h"
 #include "util.h"
 
 static const char usage[] =
 	"Usage: evanix [options] expr\n"
 	"\n"
-	"  -h, --help                       Show help message and quit.\n"
-	"  -f, --flake                      Build a flake.\n"
-	"  -d, --dry-run                    Show what derivations would be "
+	"  -h, --help                         Show help message and quit.\n"
+	"  -f, --flake                        Build a flake.\n"
+	"  -d, --dry-run                      Show what derivations would be "
 	"built.\n"
-	"  -s, --system                     System to build for.\n"
-	"  -m, --max-build                  Max number of builds.\n"
-	"  -b, --break-evanix               Enable experimental features.\n"
-	"  -r, --solver-report              Print solver report.\n"
-	"  -p, --pipelined          <bool>  Use evanix build pipeline.\n"
-	"  -l, --check_cache-status <bool>  Perform cache locality check.\n"
-	"  -c, --close-unused-fd    <bool>  Close stderr on exec.\n"
-	"  -k, --solver       highs|greedy  Solver to use.\n"
+	"  -s, --system                       System to build for.\n"
+	"  -m, --max-build                    Max number of builds.\n"
+	"  -b, --break-evanix                 Enable experimental features.\n"
+	"  -r, --solver-report                Print solver report.\n"
+	"  -p, --pipelined            <bool>  Use evanix build pipeline.\n"
+	"  -l, --check_cache-status   <bool>  Perform cache locality check.\n"
+	"  -c, --close-unused-fd      <bool>  Close stderr on exec.\n"
+	"  -k, --solver     conformity|highs  Solver to use.\n"
 	"\n";
 
 struct evanix_opts_t evanix_opts = {
@@ -36,7 +36,7 @@ struct evanix_opts_t evanix_opts = {
 	.system = NULL,
 	.solver_report = false,
 	.check_cache_status = true,
-	.solver = solver_greedy,
+	.solver = solver_conformity,
 	.break_evanix = false,
 };
 
@@ -170,8 +170,8 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 			opts->solver_report = true;
 			break;
 		case 'k':
-			if (!strcmp(optarg, "greedy")) {
-				opts->solver = solver_greedy;
+			if (!strcmp(optarg, "conformity")) {
+				opts->solver = solver_conformity;
 			} else if (!strcmp(optarg, "highs")) {
 				opts->solver = solver_highs;
 			} else {

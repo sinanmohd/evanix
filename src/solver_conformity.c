@@ -4,7 +4,7 @@
 #include "evanix.h"
 #include "jobs.h"
 #include "queue.h"
-#include "solver_greedy.h"
+#include "solver_conformity.h"
 #include "util.h"
 
 static float conformity(struct job *job);
@@ -35,7 +35,7 @@ static float conformity(struct job *job)
 	return conformity;
 }
 
-int solver_greedy(struct job **job, struct job_clist *q, int32_t resources)
+int solver_conformity(struct job **job, struct job_clist *q, int32_t resources)
 {
 	struct job *j;
 	float conformity_cur;
