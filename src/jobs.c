@@ -443,7 +443,6 @@ static int job_new(struct job **j, char *name, char *drv_path, char *attr,
 		return -errno;
 	}
 	job->scheduled = false;
-	job->reported = false;
 	job->id = -1;
 
 	job->outputs_size = 0;

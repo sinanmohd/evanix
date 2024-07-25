@@ -35,21 +35,6 @@ static float conformity(struct job *job)
 	return conformity;
 }
 
-static void solver_report(struct job *job, int32_t resources)
-{
-	if (!evanix_opts.solver_report)
-		return;
-	else if (job->reported)
-		return;
-
-	job->reported = true;
-	printf("❌ cost: %2d > %2d <-> %s -> %s\n", job_cost_recursive(job),
-	       resources, job->name, job->drv_path);
-
-	for (size_t i = 0; i < job->parents_filled; i++)
-		solver_report(job->parents[i], resources);
-}
-
 int solver_greedy(struct job **job, struct job_clist *q, int32_t resources)
 {
 	struct job *j;
@@ -63,8 +48,10 @@ int solver_greedy(struct job **job, struct job_clist *q, int32_t resources)
 			continue;
 		} else if (job_cost_recursive(j) > resources) {
 			job_stale_set(j);
-			solver_report(j, resources);
-			continue;
+			if (evanix_opts.solver_report) {
+				printf("❌ refusing to build %s, cost: %d\n",
+				       j->drv_path, job_cost_recursive(j));
+			}
 		}
 	}
 
@@ -80,11 +67,6 @@ int solver_greedy(struct job **job, struct job_clist *q, int32_t resources)
 			   selected->deps_filled > j->deps_filled) {
 			selected = j;
 		}
-
-		if (!evanix_opts.solver_report)
-			continue;
-		printf("ℹ️ cost: %2d, conformity: %.2f -> %s\n",
-		       job_cost_recursive(j), conformity_cur, j->drv_path);
 	}
 
 	if (selected == NULL)

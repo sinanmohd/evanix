@@ -30,7 +30,6 @@ struct job {
 	/* solver */
 	ssize_t id;
 	bool stale;
-	bool reported;
 };
 CIRCLEQ_HEAD(job_clist, job);
 
