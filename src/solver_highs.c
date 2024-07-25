@@ -179,7 +179,7 @@ static int job_get(struct job **job, struct job_clist *q)
 			continue;
 
 		*job = j;
-		return 0;
+		return job_cost_recursive(j);
 	}
 
 	print_err("%s", "empty queue");
