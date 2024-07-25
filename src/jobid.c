@@ -33,6 +33,7 @@ static int dag_id_assign(struct job *j, struct jobid *jobid)
 		return -errno;
 	}
 	jobid->jobs = ret;
+	jobid->size = newsize;
 
 	j->id = jobid->filled++;
 	jobid->jobs[j->id] = j;
