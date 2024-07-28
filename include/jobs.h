@@ -12,7 +12,7 @@ struct output {
 
 struct job {
 	char *name, *drv_path, *nix_attr_name;
-	bool scheduled;
+	bool requested;
 	bool insubstituters;
 	size_t outputs_size, outputs_filled;
 	struct output **outputs;

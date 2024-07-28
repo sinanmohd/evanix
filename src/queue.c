@@ -43,7 +43,7 @@ static int queue_dag_isolate(struct job *job, struct job *keep_parent,
 		job->parents_filled = 0;
 	}
 
-	if (job->scheduled)
+	if (job->requested)
 		CIRCLEQ_REMOVE(jobs, job, clist);
 
 	HASH_DEL(*htab, job);
@@ -186,8 +186,8 @@ static int queue_push(struct queue *queue, struct job *job)
 	}
 
 	/* no duplicate entries in queue */
-	if (!job->scheduled) {
-		job->scheduled = true;
+	if (!job->requested) {
+		job->requested = true;
 		CIRCLEQ_INSERT_TAIL(&queue->jobs, job, clist);
 	}
 	pthread_mutex_unlock(&queue->mutex);

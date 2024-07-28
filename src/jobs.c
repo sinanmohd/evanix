@@ -442,7 +442,7 @@ static int job_new(struct job **j, char *name, char *drv_path, char *attr,
 		print_err("%s", strerror(errno));
 		return -errno;
 	}
-	job->scheduled = false;
+	job->requested = false;
 	job->id = -1;
 
 	job->outputs_size = 0;

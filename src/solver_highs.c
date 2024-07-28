@@ -33,7 +33,7 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 		return -errno;
 	}
 	for (size_t i = 0; i < jobid->filled; i++) {
-		if (jobid->jobs[i]->scheduled)
+		if (jobid->jobs[i]->requested)
 			col_profit[i] = 1.0;
 	}
 
