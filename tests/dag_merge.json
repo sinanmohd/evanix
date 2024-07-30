@@ -1,0 +1,3 @@
+{"name":"a","attr":"a","drvPath":"/nox/store/a.drv","inputDrvs":{"/nox/store/b.drv":["out"]},"outputs":{"out":"/nox/store/a"}}
+{"attr":"b","name":"b","drvPath":"/nox/store/b.drv","inputDrvs":{},"outputs":{"out":"/nox/store/b"}}
+{"name":"c","attr":"c","drvPath":"/nox/store/c.drv","inputDrvs":{"/nox/store/b.drv":["out"]},"outputs":{"out":"/nox/store/b"}}

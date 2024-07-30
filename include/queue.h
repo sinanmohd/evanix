@@ -36,6 +36,7 @@ void queue_thread_free(struct queue_thread *queue_thread);
 void *queue_thread_entry(void *queue_thread);
 int queue_pop(struct queue *queue, struct job **job);
 int queue_isempty(struct job_clist *jobs);
+int queue_htab_job_merge(struct job **job, struct job **htab);
 
 #define QUEUE_H
 #endif

@@ -19,4 +19,4 @@ e = executable(
 	c_args: [f'-DNIX_EVAL_JOBS_PATH=@NIX_EVAL_JOBS_PATH@'],
 )
 
-test('evanix', e)
+test('evanix', e, args: '--help')

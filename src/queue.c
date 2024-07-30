@@ -13,7 +13,6 @@
 #define MAX_NIX_PKG_COUNT 200000
 
 static int queue_push(struct queue *queue, struct job *job);
-static int queue_htab_job_merge(struct job **job, struct job **htab);
 static int queue_dag_isolate(struct job *job, struct job *keep_parent,
 			     struct job_clist *jobs, struct job **htab);
 
@@ -129,7 +128,7 @@ out_mutex_unlock:
  * - only childrens or dependencies have parent node
  * - only root node have dependencies
  */
-static int queue_htab_job_merge(struct job **job, struct job **htab)
+int queue_htab_job_merge(struct job **job, struct job **htab)
 {
 	int ret;
 	struct job *jtab = NULL;
@@ -221,7 +220,6 @@ void queue_thread_free(struct queue_thread *queue_thread)
 		print_err("%s", strerror(errno));
 
 	free(queue_thread->queue);
-	fclose(queue_thread->stream);
 	free(queue_thread);
 }
 

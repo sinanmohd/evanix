@@ -23,6 +23,7 @@ buildPythonPackage {
       root = ./.;
       fileset = fs.unions [
         ./src
+        ./tests
         ./include
         ./meson.build
         ./meson_options.txt

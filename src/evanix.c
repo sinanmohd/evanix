@@ -66,24 +66,20 @@ static int evanix(char *expr)
 {
 	struct queue_thread *queue_thread = NULL;
 	struct build_thread *build_thread = NULL;
-	FILE *jobsStream = NULL; /* nix-eval-jobs stdout */
+	FILE *jobs_stream = NULL; /* nix-eval-jobs stdout */
 	int ret = 0;
 
-	ret = jobs_init(&jobsStream, expr);
+	ret = jobs_init(&jobs_stream, expr);
 	if (ret < 0)
 		goto out_free;
 
-	ret = queue_thread_new(&queue_thread, jobsStream);
-	if (ret < 0) {
-		free(jobsStream);
+	ret = queue_thread_new(&queue_thread, jobs_stream);
+	if (ret < 0)
 		goto out_free;
-	}
 
 	ret = build_thread_new(&build_thread, queue_thread->queue);
-	if (ret < 0) {
-		free(jobsStream);
+	if (ret < 0)
 		goto out_free;
-	}
 
 	ret = pthread_create(&queue_thread->tid, NULL, queue_thread_entry,
 			     queue_thread);
@@ -122,8 +118,10 @@ static int evanix(char *expr)
 	}
 
 out_free:
+	fclose(jobs_stream);
 	queue_thread_free(queue_thread);
 	free(build_thread);
+
 	return ret;
 }
 
@@ -153,7 +151,7 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 		switch (c) {
 		case 'h':
 			printf("%s", usage);
-			return -EINVAL;
+			return 0;
 			break;
 		case 'f':
 			opts->isflake = true;

@@ -23,12 +23,13 @@ highs_dep = dependency('highs')
 evanix_inc = include_directories('include')
 
 if get_option('build-python')
-  py = import('python').find_installation()
-  py.extension_module(
-    'evanix',
-    'src/evanix-py.c',
-    install: true,
-  )
+        py = import('python').find_installation()
+        py.extension_module(
+                'evanix',
+                'src/evanix-py.c',
+                install: true,
+        )
 endif
 
 subdir('src')
+subdir('tests')
