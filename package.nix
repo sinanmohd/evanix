@@ -28,7 +28,6 @@ stdenv.mkDerivation (finalAttrs: {
       ];
     };
   nativeBuildInputs = [
-    uthash
     meson
     ninja
     pkg-config
@@ -37,6 +36,7 @@ stdenv.mkDerivation (finalAttrs: {
   buildInputs = [
     cjson
     highs
+    uthash
   ];
 
   mesonFlags = [ (lib.mesonOption "NIX_EVAL_JOBS_PATH" (lib.getExe nix-eval-jobs)) ];
