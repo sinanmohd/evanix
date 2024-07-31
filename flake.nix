@@ -25,17 +25,8 @@
           default = pkgs.mkShell {
             name = "dev";
 
-            buildInputs = with pkgs; [
-              jq
-              highs
-              cjson
-              uthash
-              nix-eval-jobs
-
-              pkg-config
-              meson
-              ninja
-
+            inputsFrom = [ self.packages.${system}.evanix ];
+            packages = with pkgs; [
               gdb
               ccls
               valgrind
