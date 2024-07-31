@@ -13,7 +13,20 @@
 stdenv.mkDerivation (finalAttrs: {
   name = "evanix";
 
-  src = ./.;
+  src =
+    let
+      fs = lib.fileset;
+    in
+    fs.toSource {
+      root = ./.;
+      fileset = fs.unions [
+        ./src
+        ./tests
+        ./include
+        ./meson.build
+        ./meson_options.txt
+      ];
+    };
   nativeBuildInputs = [
     uthash
     meson
