@@ -55,36 +55,7 @@
         { system, pkgs }:
         {
           default = self.packages.${system}.evanix;
-          evanix = pkgs.stdenv.mkDerivation (finalAttrs: {
-            name = "evanix";
-
-            src = ./.;
-            nativeBuildInputs = with pkgs; [
-              uthash
-              meson
-              ninja
-              pkg-config
-              makeWrapper
-            ];
-            buildInputs = with pkgs; [
-              cjson
-              highs
-            ];
-
-            mesonFlags = [
-              (lib.mesonOption "NIX_EVAL_JOBS_PATH" (lib.getExe pkgs.nix-eval-jobs))
-            ];
-
-            meta = {
-              homepage = "https://git.sinanmohd.com/evanix";
-
-              license = lib.licenses.gpl3;
-              platforms = supportedSystems;
-              mainProgram = "evanix";
-
-              maintainers = with lib.maintainers; [ sinanmohd ];
-            };
-          });
+          evanix = pkgs.callPackage ./package.nix { };
 
           evanix-py = pkgs.python3Packages.callPackage ./python-package.nix { };
           pythonWithEvanix =
