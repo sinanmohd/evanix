@@ -39,6 +39,8 @@ stdenv.mkDerivation (finalAttrs: {
     uthash
   ];
 
+  doCheck = true;
+
   mesonFlags = [ (lib.mesonOption "NIX_EVAL_JOBS_PATH" (lib.getExe nix-eval-jobs)) ];
 
   meta = {
