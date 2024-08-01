@@ -1,5 +1,5 @@
-#include <queue.h>
 #include <errno.h>
+#include <queue.h>
 
 #include "evanix.h"
 #include "jobs.h"

@@ -1,12 +1,12 @@
-#include <stdio.h>
 #include <errno.h>
+#include <stdio.h>
 #include <string.h>
 
-#include "util.h"
-#include "queue.h"
 #include "evanix.h"
-#include "solver_sjf.h"
+#include "jobs.h"
+#include "queue.h"
 #include "test.h"
+#include "util.h"
 
 /*
  *  A               C	  A     C
@@ -23,13 +23,13 @@ struct evanix_opts_t evanix_opts = {
 	.system = NULL,
 	.solver_report = false,
 	.check_cache_status = false,
-	.solver = solver_sjf,
+	.solver = NULL,
 	.break_evanix = false,
 };
 
 static void test_merge()
 {
-	struct job *job, *a, *b, *c;
+	struct job *job, *a, *b, *c, *tmp;
 	FILE *stream;
 	int ret;
 	struct job *htab = NULL;
@@ -65,6 +65,10 @@ static void test_merge()
 	test_assert(a->deps[0] == c->deps[0]);
 
 	fclose(stream);
+	HASH_ITER (hh, htab, job, tmp)
+		HASH_DEL(htab, job);
+	job_free(a);
+	job_free(c);
 }
 
 int main(void)

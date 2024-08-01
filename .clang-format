@@ -15,3 +15,4 @@ ForEachMacros:
   - 'LIST_FOREACH'
   - 'CIRCLEQ_FOREACH'
   - 'cJSON_ArrayForEach'
+  - 'HASH_ITER'
