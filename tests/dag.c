@@ -29,49 +29,42 @@ struct evanix_opts_t evanix_opts = {
 
 static void test_merge()
 {
-	FILE *stream;
 	struct job *job, *a, *b, *c;
-	struct queue_thread *qt;
+	FILE *stream;
 	int ret;
+	struct job *htab = NULL;
 
 	stream = fopen("../tests/dag_merge.json", "r");
 	test_assert(stream != NULL);
 
-	ret = queue_thread_new(&qt, stream);
-	if (ret < 0)
-		goto out_free_stram;
-
-
 	/* A */
-	ret = job_read(qt->stream, &job);
+	ret = job_read(stream, &job);
 	test_assert(ret == JOB_READ_SUCCESS);
-	ret = queue_htab_job_merge(&job, &qt->queue->htab);
+	ret = queue_htab_job_merge(&job, &htab);
 	test_assert(ret >= 0);
 	a = job;
 
 	/* B */
-	ret = job_read(qt->stream, &job);
+	ret = job_read(stream, &job);
 	test_assert(ret == JOB_READ_SUCCESS);
-	ret = queue_htab_job_merge(&job, &qt->queue->htab);
+	ret = queue_htab_job_merge(&job, &htab);
 	test_assert(ret >= 0);
 	b = job;
 
 	/* C */
-	ret = job_read(qt->stream, &job);
+	ret = job_read(stream, &job);
 	test_assert(ret == JOB_READ_SUCCESS);
-	ret = queue_htab_job_merge(&job, &qt->queue->htab);
+	ret = queue_htab_job_merge(&job, &htab);
 	test_assert(ret >= 0);
 	c = job;
 
-	ret = job_read(qt->stream, &job);
+	ret = job_read(stream, &job);
 	test_assert(ret == JOB_READ_EOF);
 
 	test_assert(a->deps[0] == b);
 	test_assert(a->deps[0] == c->deps[0]);
 
-out_free_stram:
 	fclose(stream);
-	queue_thread_free(qt);
 }
 
 int main(void)
