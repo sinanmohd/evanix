@@ -63,5 +63,13 @@
             });
         }
       );
+      legacyPackages = forAllSystems (
+        { pkgs, ... }:
+        {
+          nixosTests = pkgs.callPackage ./nixos/tests/all-tests.nix {
+            nixos-lib = import (nixpkgs + "/nixos/lib") { };
+          };
+        }
+      );
     };
 }
