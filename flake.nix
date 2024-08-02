@@ -32,6 +32,7 @@
               valgrind
               clang-tools # clang-format
               flamegraph
+              nix-eval-jobs
               linuxKernel.packages.linux_6_6.perf
             ];
 
