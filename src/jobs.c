@@ -302,6 +302,8 @@ static int job_read_cache(struct job *job)
 			i++;
 	}
 
+	ret = 0;
+
 out_free_line:
 	free(line);
 	fclose(nix_build_stream);
@@ -394,6 +396,8 @@ int job_read(FILE *stream, struct job **job)
 		if (ret < 0)
 			goto out_free;
 	}
+
+	ret = JOB_READ_SUCCESS;
 
 out_free:
 	cJSON_Delete(root);
@@ -522,7 +526,6 @@ int jobs_init(FILE **stream, char *expr)
 {
 	size_t argindex;
 	char *args[4];
-	int ret;
 
 	argindex = 0;
 	args[argindex++] = XSTR(NIX_EVAL_JOBS_PATH);
@@ -532,9 +535,7 @@ int jobs_init(FILE **stream, char *expr)
 	args[argindex++] = NULL;
 
 	/* the package is wrapProgram-ed with nix-eval-jobs  */
-	ret = vpopen(stream, XSTR(NIX_EVAL_JOBS_PATH), args, VPOPEN_STDOUT);
-
-	return ret;
+	return vpopen(stream, XSTR(NIX_EVAL_JOBS_PATH), args, VPOPEN_STDOUT);
 }
 
 void job_stale_set(struct job *job)

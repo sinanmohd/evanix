@@ -69,7 +69,7 @@ int vpopen(FILE **stream, const char *file, char *const argv[], vpopen_t type)
 			return -errno;
 		}
 
-		return 0;
+		return ret;
 	}
 
 	close(fd[0]);
