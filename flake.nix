@@ -71,5 +71,24 @@
           };
         }
       );
+      checks = forAllSystems (
+        { system, pkgs, ... }:
+        let
+          inherit (pkgs.lib)
+            filterAttrs
+            isDerivation
+            mapAttrs'
+            nameValuePair
+            pipe
+            ;
+        in
+        pipe self.legacyPackages.${system}.nixosTests [
+          (filterAttrs (_: p: isDerivation p))
+          (mapAttrs' (name: nameValuePair "nixosTests-${name}"))
+        ]
+        // {
+          inherit (self.packages.${system}) evanix evanix-py;
+        }
+      );
     };
 }
