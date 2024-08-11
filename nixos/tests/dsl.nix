@@ -207,6 +207,8 @@ in
         ++ [
           expressions
           pkgs.path
+
+          # Cache runCommand's dependencies such as runtimeShell
           (pkgs.runCommand "any-run-command" { } "").inputDerivation
         ];
       networking.hostName = "builder";
