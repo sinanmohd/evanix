@@ -12,6 +12,45 @@ let
     nodes.d.inputs.b = { }; # d->b
     nodes.d.inputs.c = { }; # d->c
   };
+
+  #   A   B   C     D   E
+  #   \   |  /      |   |
+  #     U  V        W   X
+  sunset.dag = {
+    nodes = let
+      abcInputs = {
+          u = {};
+          v = {};
+      };
+    in {
+      a = {
+        request = true;
+        inputs = abcInputs;
+      };
+      b = {
+        request = true;
+        inputs = abcInputs;
+      };
+      c = {
+        request = true;
+        inputs = abcInputs;
+      };
+
+      d = {
+        request = true;
+        inputs.w = {};
+      };
+      e = {
+        request = true;
+        inputs.x = {};
+      };
+
+      u = {};
+      v = {};
+      w = {};
+      x = {};
+    };
+  };
 in
 builtins.mapAttrs
   (
