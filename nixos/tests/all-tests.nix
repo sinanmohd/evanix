@@ -1,5 +1,4 @@
 {
-  callPackage,
   nixos-lib,
   pkgs,
 }:
