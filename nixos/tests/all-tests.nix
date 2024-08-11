@@ -27,6 +27,7 @@ builtins.mapAttrs
         '';
       }
       // value
+      // { imports = value.imports ++ [ dsl ]; }
     )
   )
   {
@@ -37,7 +38,6 @@ builtins.mapAttrs
           dag.needDownloads = 0;
         }
         diamond
-        dsl
       ];
     };
     diamond-unbuilt-2 = {
@@ -50,7 +50,6 @@ builtins.mapAttrs
           dag.needDownloads = 2;
         }
         diamond
-        dsl
       ];
     };
     diamond-unbuilt-4 = {
@@ -61,7 +60,6 @@ builtins.mapAttrs
           dag.needDownloads = 0;
         }
         diamond
-        dsl
       ];
     };
   }
