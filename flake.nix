@@ -27,6 +27,7 @@
 
             inputsFrom = [ self.packages.${system}.evanix ];
             packages = with pkgs; [
+              nixfmt-rfc-style
               gdb
               ccls
               valgrind

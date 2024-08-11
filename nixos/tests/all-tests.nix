@@ -1,7 +1,4 @@
-{
-  nixos-lib,
-  pkgs,
-}:
+{ nixos-lib, pkgs }:
 
 let
   dsl = ./dsl.nix;
@@ -17,39 +14,41 @@ let
   #   \   |  /      |   |
   #     U  V        W   X
   sunset.dag = {
-    nodes = let
-      abcInputs = {
-          u = {};
-          v = {};
-      };
-    in {
-      a = {
-        request = true;
-        inputs = abcInputs;
-      };
-      b = {
-        request = true;
-        inputs = abcInputs;
-      };
-      c = {
-        request = true;
-        inputs = abcInputs;
-      };
+    nodes =
+      let
+        abcInputs = {
+          u = { };
+          v = { };
+        };
+      in
+      {
+        a = {
+          request = true;
+          inputs = abcInputs;
+        };
+        b = {
+          request = true;
+          inputs = abcInputs;
+        };
+        c = {
+          request = true;
+          inputs = abcInputs;
+        };
 
-      d = {
-        request = true;
-        inputs.w = {};
-      };
-      e = {
-        request = true;
-        inputs.x = {};
-      };
+        d = {
+          request = true;
+          inputs.w = { };
+        };
+        e = {
+          request = true;
+          inputs.x = { };
+        };
 
-      u = {};
-      v = {};
-      w = {};
-      x = {};
-    };
+        u = { };
+        v = { };
+        w = { };
+        x = { };
+      };
   };
 in
 builtins.mapAttrs
@@ -66,7 +65,9 @@ builtins.mapAttrs
         '';
       }
       // value
-      // { imports = value.imports ++ [ dsl ]; }
+      // {
+        imports = value.imports ++ [ dsl ];
+      }
     )
   )
   {
