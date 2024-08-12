@@ -30,14 +30,14 @@ let
       };
       options.cache = lib.mkOption {
         type = lib.types.enum [
-          "none"
+          "unbuilt"
           "remote"
           "local"
         ];
         description = ''
           Whether the dependency is pre-built and available in the local /nix/store ("local"), can be substituted ("remote"), or has to be built ("none")
         '';
-        default = "none";
+        default = "unbuilt";
       };
       options.inputs = lib.mkOption {
         type = lib.types.attrsOf (lib.types.submodule Dependency);
@@ -175,12 +175,15 @@ in
 
         for name, node in nodes.items():
           error_msg = f"Wrong plan for {name}"
+          action = drv_to_action.get(name, None)
           if node["cache"] == "local":
-            assert name not in drv_to_action, error_msg
+            assert action is None, error_msg
           elif node["cache"] == "remote":
-            assert drv_to_action.get(name, None) == "fetch", error_msg
+            assert action == "fetch", error_msg
           elif node["cache"] == "unbuilt":
-            assert drv_to_action.get(name, None) == "build", error_msg
+            assert action == "build", error_msg
+          else:
+            raise AssertionError('cache is not in [ "local", "remote", "unbuilt" ]')
 
         need_dls, need_builds = set(), set()
         for name, node in nodes.items():
