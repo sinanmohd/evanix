@@ -102,4 +102,18 @@ builtins.mapAttrs
         diamond
       ];
     };
+
+    sunset-unbuilt-0 = {
+      imports = [
+        {
+          # all builds
+          dag.needBuilds = 9;
+          # all builds allowed
+          dag.allowBuilds = 5;
+          # chosen builds requested
+          dag.choseBuilds = 3;
+        }
+        sunset
+      ];
+    };
   }
