@@ -18,12 +18,12 @@ let
         default = name;
       };
       options.request = lib.mkEnableOption "Whether to mark the node for building";
-      options.needed = lib.mkOption {
+      options.assertNeeded = lib.mkOption {
         type = with lib.types; nullOr bool;
         default = null;
         description = "Whether the node must be built to satisfy all requests (either a requested node or a transitive dependency)";
       };
-      options.chosen = lib.mkOption {
+      options.assertChosen = lib.mkOption {
         type = with lib.types; nullOr bool;
         default = null;
         description = "Whether the node is included in the build plan (i.t. it's `needed` and fitted into budget)";
