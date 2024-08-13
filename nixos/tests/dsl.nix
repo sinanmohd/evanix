@@ -92,6 +92,8 @@ in
   config.nodes.builder =
     { pkgs, ... }:
     let
+      evanixPkg = pkgs.callPackage ../../package.nix { };
+
       scope = pkgs.lib.makeScope pkgs.newScope scope-fun;
       configJson = (pkgs.formats.json { }).generate "nix-dag.json" config.dag;
       expressions = pkgs.writeText "guest-scope.nix" ''
@@ -101,6 +103,15 @@ in
         in
           pkgs.lib.makeScope pkgs.newScope (pkgs.callPackage ${./scope-fun.nix} { inherit (pkgs) lib; inherit (config) nodes; })
       '';
+      requestExpressions = pkgs.writeText "guest-request-scope.nix" ''
+        let
+          pkgs = import /nix/store/r365xbb4lp3h3vzahr97aysrzd4dysis-yqy82fn77fy3rv7lpwa9m11w3a2nnqg5-source { };
+          config = builtins.fromJSON (builtins.readFile /nix/store/4jai0ds3f1kswspwdib1ggxwyikv1jhr-nix-dag.json);
+          testPkgs = import ${expressions};
+        in
+          pkgs.lib.attrsets.filterAttrs (name: node: !(config.nodes ? ''${name}) || config.nodes.''${name}.request ) testPkgs
+      '';
+
       tester = pkgs.writers.writePython3Bin "dag-test" { } ''
         # flake8: noqa
 
@@ -118,6 +129,18 @@ in
 
         def path_to_name(path: str) -> str:
           return re.sub(r"^[ ]*${builtins.storeDir}/[a-z0-9]*-([a-zA-Z0-9_-]+)(\.drv)?", r"\1", path)
+
+        def parse_evanix_dry_run(output):
+          to_build = [ ]
+
+          for line in output.split("\n"):
+            if not re.match("nix-build --out-link .*$", line):
+              continue
+
+            drv = re.sub(r"^nix-build --out-link result-([a-zA-Z0-9_-]+).*$", r"\1", line)
+            to_build.append(drv)
+
+          return to_build
 
         def parse_dry_run(output):
           to_fetch = [ ]
@@ -198,6 +221,13 @@ in
         if (expected_need_builds := config.get("needBuilds", None)) is not None:
           assert len(need_builds) == expected_need_builds, f"{len(need_builds)} != {expected_need_builds}; building {need_builds}"
           print("Verified `needBuilds`", file=sys.stderr)
+
+        if config.get("allowBuilds", None) is not None and config.get("choseBuilds", None) is not None:
+          p = subprocess.run(["evanix", "${requestExpressions}", "--dry-run", "--solver=highs", "--max-build", str(config["allowBuilds"])], check=True, stdout=subprocess.PIPE)
+          output = p.stdout.decode("utf-8")
+          evanix_builds = parse_evanix_dry_run(output)
+          assert len(evanix_builds) == config["choseBuilds"], f"len({evanix_builds}) != choseBuilds"
+          print("Verified `choseBuilds`", file=sys.stderr)
       '';
     in
     {
@@ -209,6 +239,7 @@ in
         ]
         ++ [
           expressions
+          requestExpressions
           pkgs.path
 
           # Cache runCommand's dependencies such as runtimeShell
@@ -220,8 +251,13 @@ in
       systemd.tmpfiles.settings."10-expressions" = {
         "/run/dag-test/nix-dag-test.json"."L+".argument = "${configJson}";
         "/run/dag-test/scope.nix"."L+".argument = "${expressions}";
+        "/run/dag-test/requestScope.nix"."L+".argument = "${requestExpressions}";
       };
-      environment.systemPackages = [ tester ];
+
+      environment.systemPackages = [
+        tester
+        evanixPkg
+      ];
     };
   config.nodes.substituter =
     { pkgs, ... }:
