@@ -1,4 +1,4 @@
-{ nixos-lib, pkgs }:
+pkgs:
 
 let
   dsl = ./dsl.nix;
@@ -54,10 +54,9 @@ in
 builtins.mapAttrs
   (
     name: value:
-    nixos-lib.runTest (
+    pkgs.testers.runNixOSTest (
       {
         inherit name;
-        hostPkgs = pkgs;
         testScript = ''
           start_all()
           substituter.wait_for_unit("nix-serve.service")
