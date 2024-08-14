@@ -105,11 +105,11 @@ in
       '';
       requestExpressions = pkgs.writeText "guest-request-scope.nix" ''
         let
-          pkgs = import /nix/store/r365xbb4lp3h3vzahr97aysrzd4dysis-yqy82fn77fy3rv7lpwa9m11w3a2nnqg5-source { };
-          config = builtins.fromJSON (builtins.readFile /nix/store/4jai0ds3f1kswspwdib1ggxwyikv1jhr-nix-dag.json);
+          pkgs = import ${pkgs.path} { };
+          config = builtins.fromJSON (builtins.readFile ${configJson});
           testPkgs = import ${expressions};
         in
-          pkgs.lib.attrsets.filterAttrs (name: node: !(config.nodes ? ''${name}) || config.nodes.''${name}.request ) testPkgs
+          pkgs.lib.attrsets.filterAttrs (name: node: !(config.nodes ? ''${name}) || (config.nodes.''${name} ? request && config.nodes.''${name}.request)) testPkgs
       '';
 
       tester = pkgs.writers.writePython3Bin "dag-test" { } ''
@@ -222,12 +222,27 @@ in
           assert len(need_builds) == expected_need_builds, f"{len(need_builds)} != {expected_need_builds}; building {need_builds}"
           print("Verified `needBuilds`", file=sys.stderr)
 
-        if config.get("allowBuilds", None) is not None and config.get("choseBuilds", None) is not None:
-          p = subprocess.run(["evanix", "${requestExpressions}", "--dry-run", "--solver=highs", "--max-build", str(config["allowBuilds"])], check=True, stdout=subprocess.PIPE)
-          output = p.stdout.decode("utf-8")
-          evanix_builds = parse_evanix_dry_run(output)
+        evanix_args = ["evanix", "${requestExpressions}", "--dry-run", "--close-unused-fd", "false"]
+        if config.get("allowBuilds", None) is not None:
+          evanix_args.extend(["--solver=highs", "--max-build", str(config["allowBuilds"])])
+
+        evanix = subprocess.run(evanix_args, check=True, stdout=subprocess.PIPE)
+        evanix_output = evanix.stdout.decode("utf-8")
+        evanix_builds = parse_evanix_dry_run(evanix_output)
+
+        if config.get("choseBuilds", None) is not None:
           assert len(evanix_builds) == config["choseBuilds"], f"len({evanix_builds}) != choseBuilds"
           print("Verified `choseBuilds`", file=sys.stderr)
+
+        hadAssertChosen = False
+        for name, node in nodes.items():
+          if "assertChosen" not in node or not node["assertChosen"]:
+            continue
+          else:
+            hadAssertChosen = True
+          assert name in evanix_builds, f"{name}.assertChosen failed"
+        if hadAssertChosen:
+          print("Verified `assertChosen`", file=sys.stderr)
       '';
     in
     {
@@ -238,8 +253,6 @@ in
           (builtins.map ({ name, ... }: scope.${name}))
         ]
         ++ [
-          expressions
-          requestExpressions
           pkgs.path
 
           # Cache runCommand's dependencies such as runtimeShell

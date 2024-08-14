@@ -1,4 +1,4 @@
-pkgs:
+{ testers }:
 
 let
   dsl = ./dsl.nix;
@@ -54,7 +54,7 @@ in
 builtins.mapAttrs
   (
     name: value:
-    pkgs.testers.runNixOSTest (
+    testers.runNixOSTest (
       {
         inherit name;
         testScript = ''
@@ -105,12 +105,20 @@ builtins.mapAttrs
     sunset-unbuilt-0 = {
       imports = [
         {
-          # all builds
-          dag.needBuilds = 9;
-          # all builds allowed
-          dag.allowBuilds = 5;
-          # chosen builds requested
-          dag.choseBuilds = 3;
+          dag = {
+            # all builds
+            needBuilds = 9;
+            # all builds allowed
+            allowBuilds = 5;
+            # chosen builds requested
+            choseBuilds = 3;
+
+            nodes = {
+              a.assertChosen = true;
+              b.assertChosen = true;
+              c.assertChosen = true;
+            };
+          };
         }
         sunset
       ];

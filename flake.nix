@@ -67,7 +67,7 @@
       legacyPackages = forAllSystems (
         { pkgs, ... }:
         {
-          nixosTests = import ./nixos/tests/all-tests.nix pkgs;
+          nixosTests = pkgs.callPackage ./nixos/tests/all-tests.nix { };
         }
       );
       checks = forAllSystems (
