@@ -114,9 +114,25 @@ builtins.mapAttrs
             choseBuilds = 3;
 
             nodes = {
-              a.assertChosen = true;
-              b.assertChosen = true;
-              c.assertChosen = true;
+              a = {
+                assertChosen = true;
+                assertNeeded = true;
+              };
+              b = {
+                assertChosen = true;
+                assertNeeded = true;
+              };
+              c = {
+                assertChosen = true;
+                assertNeeded = true;
+              };
+
+              d.assertNeeded = true;
+              e.assertNeeded = true;
+              u.assertNeeded = true;
+              v.assertNeeded = true;
+              w.assertNeeded = true;
+              x.assertNeeded = true;
             };
           };
         }
