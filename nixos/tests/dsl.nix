@@ -173,11 +173,13 @@ in
               raise RuntimeError("nix-build --dry-run produced invalid output", line)
           return to_fetch, to_build
 
+        nix_build_needed = set()
         drv_to_schedule = {}
         for name, node in nodes.items():
           p = subprocess.run(["nix-build", "${expressions}", "--dry-run", "--show-trace", "-A", name], check=True, stderr=subprocess.PIPE)
           output = p.stderr.decode("utf-8")
           to_fetch, to_build = parse_dry_run(output)
+          nix_build_needed.update(to_build)
           drv_to_schedule[name] = (to_fetch, to_build)
 
         drv_to_action = {}
@@ -222,27 +224,38 @@ in
           assert len(need_builds) == expected_need_builds, f"{len(need_builds)} != {expected_need_builds}; building {need_builds}"
           print("Verified `needBuilds`", file=sys.stderr)
 
+        assertNeededNodes = set()
+        for name, node in nodes.items():
+          if "assertNeeded" in node and node["assertNeeded"]:
+            assertNeededNodes.add(name)
+        if assertNeededNodes:
+          for name in assertNeededNodes:
+            assert name in nix_build_needed, f"{name}.assertNeeded failed"
+          print("Verified `assertNeededNodes`", file=sys.stderr)
+
+        assertChosenNodes = set()
+        for name, node in nodes.items():
+          if "assertChosen" in node and node["assertChosen"]:
+            assertChosenNodes.add(name)
+
         evanix_args = ["evanix", "${requestExpressions}", "--dry-run", "--close-unused-fd", "false"]
         if config.get("allowBuilds", None) is not None:
           evanix_args.extend(["--solver=highs", "--max-build", str(config["allowBuilds"])])
 
-        evanix = subprocess.run(evanix_args, check=True, stdout=subprocess.PIPE)
-        evanix_output = evanix.stdout.decode("utf-8")
-        evanix_builds = parse_evanix_dry_run(evanix_output)
+        if assertChosenNodes or config.get("choseBuilds", None) is not None:
+          evanix = subprocess.run(evanix_args, check=True, stdout=subprocess.PIPE)
+          evanix_output = evanix.stdout.decode("utf-8")
+          evanix_builds = parse_evanix_dry_run(evanix_output)
 
         if config.get("choseBuilds", None) is not None:
           assert len(evanix_builds) == config["choseBuilds"], f"len({evanix_builds}) != choseBuilds"
           print("Verified `choseBuilds`", file=sys.stderr)
 
-        hadAssertChosen = False
-        for name, node in nodes.items():
-          if "assertChosen" not in node or not node["assertChosen"]:
-            continue
-          else:
-            hadAssertChosen = True
-          assert name in evanix_builds, f"{name}.assertChosen failed"
-        if hadAssertChosen:
-          print("Verified `assertChosen`", file=sys.stderr)
+        if assertChosenNodes:
+          for name in assertChosenNodes:
+            assert name in evanix_builds and name in nix_build_needed, f"{name}.assertChosen failed"
+          print("Verified `assertChosenNodes`", file=sys.stderr)
+
       '';
     in
     {
