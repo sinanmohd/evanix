@@ -92,7 +92,7 @@ in
   config.nodes.builder =
     { pkgs, ... }:
     let
-      evanixPkg = pkgs.callPackage ../../package.nix { };
+      evanix = pkgs.callPackage ../../package.nix { };
 
       scope = pkgs.lib.makeScope pkgs.newScope scope-fun;
       configJson = (pkgs.formats.json { }).generate "nix-dag.json" config.dag;
@@ -269,7 +269,7 @@ in
 
       environment.systemPackages = [
         tester
-        evanixPkg
+        evanix
       ];
     };
   config.nodes.substituter =
