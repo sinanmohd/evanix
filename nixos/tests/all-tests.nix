@@ -23,24 +23,24 @@ let
       in
       {
         a = {
-          request = true;
+          goal = true;
           inputs = abcInputs;
         };
         b = {
-          request = true;
+          goal = true;
           inputs = abcInputs;
         };
         c = {
-          request = true;
+          goal = true;
           inputs = abcInputs;
         };
 
         d = {
-          request = true;
+          goal = true;
           inputs.w = { };
         };
         e = {
-          request = true;
+          goal = true;
           inputs.x = { };
         };
 
@@ -73,8 +73,8 @@ builtins.mapAttrs
     diamond-unbuilt-0 = {
       imports = [
         {
-          dag.needBuilds = 0;
-          dag.needDownloads = 0;
+          dag.test.unconstrained.builds = 0;
+          dag.test.unconstrained.downloads = 0;
         }
         diamond
       ];
@@ -84,9 +84,9 @@ builtins.mapAttrs
         {
           dag.nodes.a.cache = "remote";
           dag.nodes.b.cache = "remote";
-          dag.nodes.d.request = true;
-          dag.needBuilds = 2;
-          dag.needDownloads = 2;
+          dag.nodes.d.goal = true;
+          dag.test.unconstrained.builds = 2;
+          dag.test.unconstrained.downloads = 2;
         }
         diamond
       ];
@@ -94,9 +94,9 @@ builtins.mapAttrs
     diamond-unbuilt-4 = {
       imports = [
         {
-          dag.nodes.d.request = true;
-          dag.needBuilds = 4;
-          dag.needDownloads = 0;
+          dag.nodes.d.goal = true;
+          dag.test.unconstrained.builds = 4;
+          dag.test.unconstrained.downloads = 0;
         }
         diamond
       ];
@@ -106,33 +106,31 @@ builtins.mapAttrs
       imports = [
         {
           dag = {
-            # all builds
-            needBuilds = 9;
-            # all builds allowed
-            allowBuilds = 5;
-            # chosen builds requested
-            choseBuilds = 3;
+            test.unconstrained.builds = 9;
+
+            constraints.builds = 5;
+            test.constrained.builds = 3;
 
             nodes = {
-              a = {
-                assertChosen = true;
-                assertNeeded = true;
+              a.test = {
+                chosen = true;
+                needed = true;
               };
-              b = {
-                assertChosen = true;
-                assertNeeded = true;
+              b.test = {
+                chosen = true;
+                needed = true;
               };
-              c = {
-                assertChosen = true;
-                assertNeeded = true;
+              c.test = {
+                chosen = true;
+                needed = true;
               };
 
-              d.assertNeeded = true;
-              e.assertNeeded = true;
-              u.assertNeeded = true;
-              v.assertNeeded = true;
-              w.assertNeeded = true;
-              x.assertNeeded = true;
+              d.test.needed = true;
+              e.test.needed = true;
+              u.test.needed = true;
+              v.test.needed = true;
+              w.test.needed = true;
+              x.test.needed = true;
             };
           };
         }

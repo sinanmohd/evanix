@@ -34,6 +34,8 @@
               clang-tools # clang-format
               flamegraph
               linuxKernel.packages.linux_6_6.perf
+              hyperfine
+              nix-eval-jobs
             ];
 
             shellHook = ''

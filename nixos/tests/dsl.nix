@@ -17,13 +17,13 @@ let
         type = lib.types.str;
         default = name;
       };
-      options.request = lib.mkEnableOption "Whether to mark the node for building";
-      options.assertNeeded = lib.mkOption {
+      options.goal = lib.mkEnableOption ''Mark for building (node is a "goal", "target")'';
+      options.test.needed = lib.mkOption {
         type = with lib.types; nullOr bool;
         default = null;
-        description = "Whether the node must be built to satisfy all requests (either a requested node or a transitive dependency)";
+        description = "Verify `nix-build --dry-run` reports node as any of to-be built or to-be fetched";
       };
-      options.assertChosen = lib.mkOption {
+      options.test.chosen = lib.mkOption {
         type = with lib.types; nullOr bool;
         default = null;
         description = "Whether the node is included in the build plan (i.t. it's `needed` and fitted into budget)";
@@ -57,32 +57,32 @@ in
       type = Nodes;
       description = "Derivation DAG, including cache status and references.";
     };
-    needBuilds = lib.mkOption {
+    test.unconstrained.builds = lib.mkOption {
       type = with lib.types; nullOr int;
       default = null;
       description = "How many builds are required to satisfy all targets. Null disables the test";
     };
-    needDownloads = lib.mkOption {
+    test.unconstrained.downloads = lib.mkOption {
       type = with lib.types; nullOr int;
       default = null;
       description = "How many downloads are required to satisfy all targets. Null disables the test";
     };
-    choseBuilds = lib.mkOption {
+    test.constrained.builds = lib.mkOption {
       type = with lib.types; nullOr int;
       default = null;
       description = "How many builds we expect evanix to choose to satisfy the maximum number of targets within the given budget. Null disables the test";
     };
-    choseDownloads = lib.mkOption {
+    test.constrained.downloads = lib.mkOption {
       type = with lib.types; nullOr int;
       default = null;
       description = "How many downloads we expect evanix to choose to satisfy the maximum number of targets within the given budget. Null disables the test";
     };
-    allowBuilds = lib.mkOption {
+    constraints.builds = lib.mkOption {
       type = with lib.types; nullOr int;
       default = null;
       description = "How many builds evanix is allowed to choose. Null means no constraint";
     };
-    allowDownloads = lib.mkOption {
+    constraints.downloads = lib.mkOption {
       type = with lib.types; nullOr int;
       default = null;
       description = "How many downloads evanix is allowed to choose. Null means no constraint";
@@ -105,11 +105,16 @@ in
       '';
       requestExpressions = pkgs.writeText "guest-request-scope.nix" ''
         let
+          inherit (pkgs) lib;
           pkgs = import ${pkgs.path} { };
           config = builtins.fromJSON (builtins.readFile ${configJson});
-          testPkgs = import ${expressions};
+          all = import ${expressions};
+          subset = lib.pipe all [
+            (lib.filterAttrs (name: node: lib.isDerivation node))
+            (lib.filterAttrs (name: node: config.nodes.''${name}.goal))
+          ];
         in
-          pkgs.lib.attrsets.filterAttrs (name: node: !(config.nodes ? ''${name}) || (config.nodes.''${name} ? request && config.nodes.''${name}.request)) testPkgs
+          subset
       '';
 
       tester = pkgs.writers.writePython3Bin "dag-test" { } ''
@@ -120,8 +125,10 @@ in
         import subprocess
         import sys
 
+
         with open("${configJson}", "r") as f:
           config = json.load(f)
+
 
         nodes = config["nodes"]
         print(f"config={config}", file=sys.stderr)
@@ -173,13 +180,11 @@ in
               raise RuntimeError("nix-build --dry-run produced invalid output", line)
           return to_fetch, to_build
 
-        nix_build_needed = set()
         drv_to_schedule = {}
         for name, node in nodes.items():
           p = subprocess.run(["nix-build", "${expressions}", "--dry-run", "--show-trace", "-A", name], check=True, stderr=subprocess.PIPE)
           output = p.stderr.decode("utf-8")
           to_fetch, to_build = parse_dry_run(output)
-          nix_build_needed.update(to_build)
           drv_to_schedule[name] = (to_fetch, to_build)
 
         drv_to_action = {}
@@ -210,52 +215,65 @@ in
           else:
             raise AssertionError('cache is not in [ "local", "remote", "unbuilt" ]')
 
-        need_dls, need_builds = set(), set()
+        need_builds: set[str] = set()
+        need_dls: set[str] = set()
         for name, node in nodes.items():
-          if node["request"]:
+          if node["goal"]:
             need_dls.update(drv_to_schedule[name][0])
             need_builds.update(drv_to_schedule[name][1])
 
-        if (expected_need_dls := config.get("needDownloads", None)) is not None:
+        if (expected_need_dls := config["test"]["unconstrained"]["downloads"]) is not None:
           assert len(need_dls) == expected_need_dls, f"{len(need_dls)} != {expected_need_dls}; building {need_dls}"
           print("Verified `needDownloads`", file=sys.stderr)
 
-        if (expected_need_builds := config.get("needBuilds", None)) is not None:
+        if (expected_need_builds := config["test"]["unconstrained"]["builds"]) is not None:
           assert len(need_builds) == expected_need_builds, f"{len(need_builds)} != {expected_need_builds}; building {need_builds}"
           print("Verified `needBuilds`", file=sys.stderr)
 
-        assertNeededNodes = set()
         for name, node in nodes.items():
-          if "assertNeeded" in node and node["assertNeeded"]:
-            assertNeededNodes.add(name)
-        if assertNeededNodes:
-          for name in assertNeededNodes:
-            assert name in nix_build_needed, f"{name}.assertNeeded failed"
-          print("Verified `assertNeededNodes`", file=sys.stderr)
+          if node["test"]["needed"]:
+            assert name in need_builds or name in need_dls, f"{name}.test.needed violated"
 
-        assertChosenNodes = set()
-        for name, node in nodes.items():
-          if "assertChosen" in node and node["assertChosen"]:
-            assertChosenNodes.add(name)
 
         evanix_args = ["evanix", "${requestExpressions}", "--dry-run", "--close-unused-fd", "false"]
-        if config.get("allowBuilds", None) is not None:
-          evanix_args.extend(["--solver=highs", "--max-build", str(config["allowBuilds"])])
+        if (allow_builds := config["constraints"]["builds"]) is not None:
+          evanix_args.extend(["--solver=highs", "--max-build", str(allow_builds)])
 
-        if assertChosenNodes or config.get("choseBuilds", None) is not None:
+        expect_chosen_nodes = set(name for name, node in nodes.items() if node["test"]["chosen"])
+        expect_n_chosen_builds = config["test"]["constrained"]["builds"]
+        expect_n_chosen_downloads = config["test"]["constrained"]["downloads"]
+
+        # TODO: Add option
+        if expect_n_chosen_downloads is not None and expect_n_chosen_builds is not None:
+          expect_n_chosen_nodes = expect_n_chosen_builds + expect_n_chosen_downloads
+        else:
+          expect_n_chosen_nodes = None
+
+        if expect_chosen_nodes or expect_n_chosen_nodes is not None:
           evanix = subprocess.run(evanix_args, check=True, stdout=subprocess.PIPE)
           evanix_output = evanix.stdout.decode("utf-8")
-          evanix_builds = parse_evanix_dry_run(evanix_output)
+          evanix_choices = parse_evanix_dry_run(evanix_output)
+        else:
+          evanix_choices = set()
 
-        if config.get("choseBuilds", None) is not None:
-          assert len(evanix_builds) == config["choseBuilds"], f"len({evanix_builds}) != choseBuilds"
-          print("Verified `choseBuilds`", file=sys.stderr)
+        evanix_builds, evanix_downloads = [], []
+        for choice in evanix_choices:
+          if drv_to_action[choice] == "build":
+            evanix_builds.append(choice)
+          elif drv_to_action[choice] == "fetch":
+            evanix_downloads.append(choice)
 
-        if assertChosenNodes:
-          for name in assertChosenNodes:
-            assert name in evanix_builds and name in nix_build_needed, f"{name}.assertChosen failed"
-          print("Verified `assertChosenNodes`", file=sys.stderr)
+        if expect_n_chosen_nodes is not None:
+          assert len(evanix_choices) == expect_n_chosen_nodes, f"len({evanix_builds}) != choseNodes"
+          print("Verified `choseNodes`", file=sys.stderr)
 
+        if expect_chosen_nodes:
+          for name in expect_chosen_nodes:
+            assert name in evanix_choices, f"{name}.test.chosen failed; choices: {evanix_choices}"
+          print("Verified `expect_chosen_nodes`", file=sys.stderr)
+
+        assert expect_n_chosen_builds is None or len(evanix_builds) == expect_n_chosen_builds, f"{expect_n_chosen_builds=} {len(evanix_builds)=}"
+        assert expect_n_chosen_downloads is None or len(evanix_downloads) == expect_n_chosen_downloads, f"{expect_n_chosen_downloads=} {len(evanix_downloads)=}"
       '';
     in
     {
