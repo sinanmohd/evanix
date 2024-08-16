@@ -42,13 +42,20 @@ builtins.mapAttrs
       {
         inherit name;
         imports = value.imports ++ [ dsl ];
-        testScript = ''
-          start_all()
-          substituter.wait_for_unit("nix-serve.service")
-          builder.succeed("dag-test")
-        '';
+        testScript =
+          value.testScriptPre or ""
+          + ''
+            start_all()
+            substituter.wait_for_unit("nix-serve.service")
+            builder.succeed("dag-test")
+          ''
+          + value.testScriptPost or "";
       }
-      // builtins.removeAttrs value [ "imports" ]
+      // builtins.removeAttrs value [
+        "imports"
+        "testScriptPre"
+        "testScriptPost"
+      ]
     )
   )
   {
