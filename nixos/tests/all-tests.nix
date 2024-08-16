@@ -41,16 +41,14 @@ builtins.mapAttrs
     testers.runNixOSTest (
       {
         inherit name;
+        imports = value.imports ++ [ dsl ];
         testScript = ''
           start_all()
           substituter.wait_for_unit("nix-serve.service")
           builder.succeed("dag-test")
         '';
       }
-      // value
-      // {
-        imports = value.imports ++ [ dsl ];
-      }
+      // builtins.removeAttrs value [ "imports" ]
     )
   )
   {
