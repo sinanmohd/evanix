@@ -96,19 +96,19 @@ in
 
       scope = pkgs.lib.makeScope pkgs.newScope scope-fun;
       configJson = (pkgs.formats.json { }).generate "nix-dag.json" config.dag;
-      expressions = pkgs.writeText "guest-scope.nix" ''
+      allPackages = pkgs.writeText "guest-scope.nix" ''
         let
           pkgs = import ${pkgs.path} { };
           config = builtins.fromJSON (builtins.readFile ${configJson});
         in
           pkgs.lib.makeScope pkgs.newScope (pkgs.callPackage ${./scope-fun.nix} { inherit (pkgs) lib; inherit (config) nodes; })
       '';
-      requestExpressions = pkgs.writeText "guest-request-scope.nix" ''
+      targets = pkgs.writeText "guest-request-scope.nix" ''
         let
           inherit (pkgs) lib;
           pkgs = import ${pkgs.path} { };
           config = builtins.fromJSON (builtins.readFile ${configJson});
-          all = import ${expressions};
+          all = import ${allPackages};
           subset = lib.pipe all [
             (lib.filterAttrs (name: node: lib.isDerivation node))
             (lib.filterAttrs (name: node: config.nodes.''${name}.goal))
@@ -182,7 +182,7 @@ in
 
         drv_to_schedule = {}
         for name, node in nodes.items():
-          p = subprocess.run(["nix-build", "${expressions}", "--dry-run", "--show-trace", "-A", name], check=True, stderr=subprocess.PIPE)
+          p = subprocess.run(["nix-build", "${allPackages}", "--dry-run", "--show-trace", "-A", name], check=True, stderr=subprocess.PIPE)
           output = p.stderr.decode("utf-8")
           to_fetch, to_build = parse_dry_run(output)
           drv_to_schedule[name] = (to_fetch, to_build)
@@ -235,7 +235,7 @@ in
             assert name in need_builds or name in need_dls, f"{name}.test.needed violated"
 
 
-        evanix_args = ["evanix", "${requestExpressions}", "--dry-run", "--close-unused-fd", "false"]
+        evanix_args = ["evanix", "${targets}", "--dry-run", "--close-unused-fd", "false"]
         if (allow_builds := config["constraints"]["builds"]) is not None:
           evanix_args.extend(["--solver=highs", "--max-build", str(allow_builds)])
 
@@ -294,8 +294,8 @@ in
       nix.settings.substituters = lib.mkForce [ "http://substituter" ];
       systemd.tmpfiles.settings."10-expressions" = {
         "/run/dag-test/nix-dag-test.json"."L+".argument = "${configJson}";
-        "/run/dag-test/scope.nix"."L+".argument = "${expressions}";
-        "/run/dag-test/requestScope.nix"."L+".argument = "${requestExpressions}";
+        "/run/dag-test/all-packages.nix"."L+".argument = "${allPackages}";
+        "/run/dag-test/targets.nix"."L+".argument = "${targets}";
       };
 
       environment.systemPackages = [
