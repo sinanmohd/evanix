@@ -1,4 +1,4 @@
-{ testers }:
+{ lib, testers }:
 
 let
   dsl = ./dsl.nix;
@@ -16,33 +16,17 @@ let
   sunset.dag = {
     nodes =
       let
-        abcInputs = {
-          u = { };
-          v = { };
+        goalDependsOn = inputs: {
+          goal = true;
+          inputs = lib.genAttrs inputs (_: { });
         };
       in
       {
-        a = {
-          goal = true;
-          inputs = abcInputs;
-        };
-        b = {
-          goal = true;
-          inputs = abcInputs;
-        };
-        c = {
-          goal = true;
-          inputs = abcInputs;
-        };
-
-        d = {
-          goal = true;
-          inputs.w = { };
-        };
-        e = {
-          goal = true;
-          inputs.x = { };
-        };
+        a = goalDependsOn [ "u" "v" ];
+        b = goalDependsOn [ "u" "v" ];
+        c = goalDependsOn [ "u" "v" ];
+        d = goalDependsOn [ "w" ];
+        e = goalDependsOn [ "x" ];
 
         u = { };
         v = { };
