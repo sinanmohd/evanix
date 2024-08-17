@@ -27,6 +27,7 @@
 
             inputsFrom = [ self.packages.${system}.evanix ];
             packages = with pkgs; [
+              nixfmt-rfc-style
               gdb
               ccls
               valgrind
@@ -34,6 +35,8 @@
               flamegraph
               nix-eval-jobs
               linuxKernel.packages.linux_6_6.perf
+              hyperfine
+              nix-eval-jobs
             ];
 
             shellHook = ''
@@ -67,6 +70,31 @@
                 "${lib.makeBinPath [ pkgs.nix-eval-jobs ]}"
               ];
             });
+        }
+      );
+      legacyPackages = forAllSystems (
+        { pkgs, ... }:
+        {
+          nixosTests = pkgs.callPackage ./nixos/tests/all-tests.nix { };
+        }
+      );
+      checks = forAllSystems (
+        { system, pkgs, ... }:
+        let
+          inherit (pkgs.lib)
+            filterAttrs
+            isDerivation
+            mapAttrs'
+            nameValuePair
+            pipe
+            ;
+        in
+        pipe self.legacyPackages.${system}.nixosTests [
+          (filterAttrs (_: p: isDerivation p))
+          (mapAttrs' (name: nameValuePair "nixosTests-${name}"))
+        ]
+        // {
+          inherit (self.packages.${system}) evanix evanix-py;
         }
       );
     };
