@@ -21,7 +21,7 @@ e = executable(
 
 
 foreach solver : ['sjf', 'highs', 'conformity']
-	test('evanix', e, args: [
+	test(f'evanix-@solver@', e, args: [
 		'--dry-run',
 		'--close-unused-fd=false',
 		'--max-build=3',
