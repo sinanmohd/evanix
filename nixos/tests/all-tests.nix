@@ -10,9 +10,9 @@ let
     nodes.d.inputs.c = { }; # d->c
   };
 
-  #   A   B   C     D   E
-  #   \   |  /      |   |
-  #     U  V        W   X
+  #   A   B   C     D
+  #   \   |  /      |
+  #     U  V        W
   sunset.dag = {
     nodes =
       let
@@ -26,12 +26,10 @@ let
         b = goalDependsOn [ "u" "v" ];
         c = goalDependsOn [ "u" "v" ];
         d = goalDependsOn [ "w" ];
-        e = goalDependsOn [ "x" ];
 
         u = { };
         v = { };
         w = { };
-        x = { };
       };
   };
 in
@@ -91,11 +89,11 @@ builtins.mapAttrs
       ];
     };
 
-    sunset-unbuilt-9 = {
+    sunset-unbuilt-7 = {
       imports = [
         {
           dag = {
-            test.unconstrained.builds = 9;
+            test.unconstrained.builds = 7;
 
             constraints.builds = 5;
             test.constrained.builds = 3;
@@ -115,11 +113,9 @@ builtins.mapAttrs
               };
 
               d.test.needed = true;
-              e.test.needed = true;
               u.test.needed = true;
               v.test.needed = true;
               w.test.needed = true;
-              x.test.needed = true;
             };
           };
         }
