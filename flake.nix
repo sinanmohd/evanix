@@ -48,6 +48,11 @@
         {
           default = self.packages.${system}.evanix;
           evanix = pkgs.callPackage ./package.nix { };
+          evanix-asan = self.packages.${system}.evanix.overrideAttrs (
+            _: previousAttrs: {
+              mesonFlags = previousAttrs.mesonFlags ++ [ (lib.mesonOption "b_sanitize" "address") ];
+            }
+          );
 
           evanix-py = pkgs.python3Packages.callPackage ./python-package.nix { };
           pythonWithEvanix =
