@@ -237,7 +237,7 @@ in
 
         evanix_args = ["evanix", "${targets}", "--dry-run", "--close-unused-fd", "false"]
         if (allow_builds := config["constraints"]["builds"]) is not None:
-          evanix_args.extend(["--solver=highs", "--max-build", str(allow_builds)])
+          evanix_args.extend(["--solver=highs", "--max-builds", str(allow_builds)])
 
         expect_chosen_nodes = set(name for name, node in nodes.items() if node["test"]["chosen"])
         expect_n_chosen_builds = config["test"]["constrained"]["builds"]

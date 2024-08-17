@@ -24,7 +24,7 @@ foreach solver : ['sjf', 'highs', 'conformity']
 	test(f'evanix-@solver@', e, args: [
 		'--dry-run',
 		'--close-unused-fd=false',
-		'--max-build=3',
+		'--max-builds=3',
 		'--solver-report',
 		f'--solver=@solver@',
 		'--flake',

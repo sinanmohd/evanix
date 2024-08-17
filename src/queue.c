@@ -102,7 +102,7 @@ int queue_pop(struct queue *queue, struct job **job)
 	}
 
 	pthread_mutex_lock(&queue->mutex);
-	if (evanix_opts.max_build) {
+	if (evanix_opts.max_builds) {
 		ret = evanix_opts.solver(&j, &queue->jobs, queue->resources);
 		if (ret < 0)
 			goto out_mutex_unlock;
@@ -242,7 +242,7 @@ int queue_thread_new(struct queue_thread **queue_thread, FILE *stream)
 		goto out_free_qt;
 	}
 	qt->queue->htab = NULL;
-	qt->queue->resources = evanix_opts.max_build;
+	qt->queue->resources = evanix_opts.max_builds;
 	qt->queue->jobid = NULL;
 	qt->queue->state = Q_SEM_WAIT;
 	ret = sem_init(&qt->queue->sem, 0, 0);

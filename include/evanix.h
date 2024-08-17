@@ -14,7 +14,7 @@ struct evanix_opts_t {
 	bool check_cache_status;
 	bool break_evanix;
 	char *system;
-	uint32_t max_build;
+	uint32_t max_builds;
 	int (*solver)(struct job **, struct job_clist *, int32_t);
 };
 

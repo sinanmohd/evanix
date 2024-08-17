@@ -19,7 +19,7 @@ static const char usage[] =
 	"  -d, --dry-run                      Show what derivations would be "
 	"built.\n"
 	"  -s, --system                       System to build for.\n"
-	"  -m, --max-build                    Max number of builds.\n"
+	"  -m, --max-builds                   Max number of builds.\n"
 	"  -b, --break-evanix                 Enable experimental features.\n"
 	"  -r, --solver-report                Print solver report.\n"
 	"  -p, --pipelined            <bool>  Use evanix build pipeline.\n"
@@ -33,7 +33,7 @@ struct evanix_opts_t evanix_opts = {
 	.isflake = false,
 	.ispipelined = true,
 	.isdryrun = false,
-	.max_build = 0,
+	.max_builds = 0,
 	.system = NULL,
 	.solver_report = false,
 	.check_cache_status = true,
@@ -139,8 +139,8 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 		{"solver", required_argument, NULL, 'k'},
 		{"system", required_argument, NULL, 's'},
 		{"solver-report", no_argument, NULL, 'r'},
-		{"max-build", required_argument, NULL, 'm'},
 		{"pipelined", required_argument, NULL, 'p'},
+		{"max-builds", required_argument, NULL, 'm'},
 		{"close-unused-fd", required_argument, NULL, 'c'},
 		{"check-cache-status", required_argument, NULL, 'l'},
 		{NULL, 0, NULL, 0},
@@ -197,7 +197,7 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 				return -EINVAL;
 			}
 
-			opts->max_build = ret;
+			opts->max_builds = ret;
 			break;
 		case 'p':
 			ret = atob(optarg);
