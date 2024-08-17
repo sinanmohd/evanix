@@ -19,4 +19,15 @@ e = executable(
 	c_args: [f'-DNIX_EVAL_JOBS_PATH=@NIX_EVAL_JOBS_PATH@'],
 )
 
-test('evanix', e, args: '--help')
+
+foreach solver : ['sjf', 'highs', 'conformity']
+	test('evanix', e, args: [
+		'--dry-run',
+		'--close-unused-fd=false',
+		'--max-build=3',
+		'--solver-report',
+		f'--solver=@solver@',
+		'--flake',
+		'../#packages.x86_64-linux'
+	])
+endforeach
