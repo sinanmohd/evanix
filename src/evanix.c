@@ -37,7 +37,7 @@ struct evanix_opts_t evanix_opts = {
 	.system = NULL,
 	.solver_report = false,
 	.check_cache_status = true,
-	.solver = solver_conformity,
+	.solver = solver_highs,
 	.break_evanix = false,
 };
 
