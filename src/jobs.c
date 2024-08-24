@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #include <cjson/cJSON.h>
+#include <sqlite3.h>
 
 #include "evanix.h"
 #include "jobs.h"
@@ -27,6 +28,7 @@ static int job_read_inputdrvs(struct job *job, cJSON *input_drvs);
 static int job_read_outputs(struct job *job, cJSON *outputs);
 static int job_deps_list_insert(struct job *job, struct job *dep);
 static int job_output_list_insert(struct job *job, struct output *output);
+static char *drv_path_to_pname(char *drv_path);
 
 static void output_free(struct output *output)
 {
@@ -37,6 +39,32 @@ static void output_free(struct output *output)
 	free(output->store_path);
 
 	free(output);
+}
+
+static char *drv_path_to_pname(char *drv_path)
+{
+	char *pname, *p;
+
+	p = strrchr(drv_path, '/');
+	if (p == NULL)
+		return NULL;
+
+	p = strchr(p, '-');
+	if (p == NULL)
+		return NULL;
+	p++;
+	if (*p == '\0')
+		return NULL;
+
+	pname = strdup(p);
+	if (pname == NULL)
+		return NULL;
+
+	p = strchr(pname, '-');
+	if (p != NULL)
+		*p = '\0';
+
+	return pname;
 }
 
 static int job_output_list_insert(struct job *job, struct output *output)
@@ -121,6 +149,45 @@ int job_parents_list_insert(struct job *job, struct job *parent)
 	job->parents[job->parents_filled++] = parent;
 
 	return 0;
+}
+
+static int job_cost_estimate(struct job *job)
+{
+	int ret;
+	char *pname;
+
+	pname = drv_path_to_pname(job->drv_path);
+	if (pname == NULL) {
+		print_err("Unable to obtain pname from drv_path: %s",
+			  job->drv_path);
+		return -EINVAL;
+	}
+
+	ret = sqlite3_bind_text(evanix_opts.estimate.statement, 1, pname, -1,
+				NULL);
+	if (ret != SQLITE_OK) {
+		print_err("%s", "Failed to bind sql");
+		ret = -EPERM;
+		goto out_free_pname;
+	}
+
+	ret = sqlite3_step(evanix_opts.estimate.statement);
+	if (ret == SQLITE_DONE) {
+		ret = -ENOENT;
+		goto out_free_pname;
+	}
+	if (ret != SQLITE_ROW) {
+		print_err("%s", "Failed to step sql");
+		ret = -EPERM;
+		goto out_free_pname;
+	}
+
+	ret = sqlite3_column_int(evanix_opts.estimate.statement, 0);
+
+out_free_pname:
+	free(pname);
+
+	return ret;
 }
 
 int job_cost_recursive(struct job *job)

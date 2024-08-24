@@ -8,7 +8,7 @@ dag_test = executable(
 	],
 
 	include_directories: evanix_inc,
-	dependencies: [ cjson_dep, highs_dep ],
+	dependencies: [ cjson_dep, highs_dep, sqlite_dep ],
 )
 
 test('dag', dag_test)

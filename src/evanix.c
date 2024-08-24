@@ -42,7 +42,8 @@ struct evanix_opts_t evanix_opts = {
 	.check_cache_status = true,
 	.solver = solver_highs,
 	.break_evanix = false,
-	.estimate = NULL,
+	.estimate.db = NULL,
+	.estimate.statement = NULL,
 };
 
 static int evanix_build_thread_create(struct build_thread *build_thread);
@@ -139,6 +140,11 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 	extern char *optarg;
 	int longindex, c;
 
+	const char *query = "SELECT duration "
+			    "FROM estimate "
+			    "WHERE estimate.pname = ? "
+			    "LIMIT 1 ";
+
 	int ret = 0;
 
 	static struct option longopts[] = {
@@ -181,7 +187,7 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 			opts->solver_report = true;
 			break;
 		case 'e':
-			if (opts->estimate) {
+			if (opts->estimate.db) {
 				fprintf(stderr,
 					"option -%c can't be redefined "
 					"Try 'evanix --help' for more "
@@ -190,15 +196,22 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 				return -EINVAL;
 			}
 
-			ret = sqlite3_open_v2(optarg, &opts->estimate,
+			ret = sqlite3_open_v2(optarg, &opts->estimate.db,
 					      SQLITE_OPEN_READONLY |
 						      SQLITE_OPEN_FULLMUTEX,
 					      NULL);
 			if (ret != SQLITE_OK) {
 				print_err("Can't open database: %s",
-					  sqlite3_errmsg(opts->estimate));
+					  sqlite3_errmsg(opts->estimate.db));
 				ret = -EPERM;
 				goto out_free_evanix;
+			}
+			ret = sqlite3_prepare_v2(opts->estimate.db, query, -1,
+						 &opts->estimate.statement,
+						 NULL);
+			if (ret != SQLITE_OK) {
+				print_err("%s", "Failed to prepare sql");
+				return -EPERM;
 			}
 
 			break;
@@ -311,7 +324,7 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 				"Try 'evanix --help' for more information.\n");
 		ret = -EINVAL;
 		goto out_free_evanix;
-	} else if (opts->max_time && !opts->estimate) {
+	} else if (opts->max_time && !opts->estimate.db) {
 		fprintf(stderr, "evanix: option --max-time implies --estimate\n"
 				"Try 'evanix --help' for more information.\n");
 		ret = -EINVAL;
@@ -334,15 +347,20 @@ static int evanix_free(struct evanix_opts_t *opts)
 {
 	int ret;
 
-	if (opts->estimate) {
-		ret = sqlite3_close(opts->estimate);
+	if (opts->estimate.statement) {
+		sqlite3_finalize(opts->estimate.statement);
+		opts->estimate.statement = NULL;
+	}
+
+	if (opts->estimate.db) {
+		ret = sqlite3_close(opts->estimate.db);
 		if (ret != SQLITE_OK) {
 			print_err("Can't open database: %s",
-				  sqlite3_errmsg(opts->estimate));
+				  sqlite3_errmsg(opts->estimate.db));
 			return -EPERM;
 		}
 
-		opts->estimate = NULL;
+		opts->estimate.db = NULL;
 	}
 
 	return 0;
