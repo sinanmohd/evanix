@@ -1,3 +1,4 @@
+#include <sqlite3.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -14,6 +15,7 @@ struct evanix_opts_t {
 	bool check_cache_status;
 	bool break_evanix;
 	char *system;
+	struct sqlite3 *estimate;
 	uint32_t max_builds;
 	int (*solver)(struct job **, struct job_clist *, int32_t);
 };

@@ -8,6 +8,7 @@
   cjson,
   highs,
   uthash,
+  sqlite,
 }:
 
 buildPythonPackage {
@@ -41,5 +42,6 @@ buildPythonPackage {
     cjson
     highs
     uthash
+    sqlite
   ];
 }

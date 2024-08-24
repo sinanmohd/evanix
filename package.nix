@@ -9,6 +9,7 @@
   pkg-config,
   stdenv,
   uthash,
+  sqlite
 }:
 stdenv.mkDerivation (finalAttrs: {
   name = "evanix";
@@ -37,6 +38,7 @@ stdenv.mkDerivation (finalAttrs: {
     cjson
     highs
     uthash
+    sqlite
   ];
 
   doCheck = true;

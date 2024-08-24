@@ -25,6 +25,7 @@ static const char usage[] =
 	"  -p, --pipelined            <bool>  Use evanix build pipeline.\n"
 	"  -l, --check_cache-status   <bool>  Perform cache locality check.\n"
 	"  -c, --close-unused-fd      <bool>  Close stderr on exec.\n"
+	"  -e, --estimate             <path>  Path to time estimate database.\n"
 	"  -k, --solver sjf|conformity|highs  Solver to use.\n"
 	"\n";
 
@@ -39,10 +40,14 @@ struct evanix_opts_t evanix_opts = {
 	.check_cache_status = true,
 	.solver = solver_highs,
 	.break_evanix = false,
+	.estimate = NULL,
 };
 
 static int evanix_build_thread_create(struct build_thread *build_thread);
 static int evanix(char *expr);
+static int evanix_free(struct evanix_opts_t *opts);
+static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
+		     char *argv[]);
 
 /* This function returns errno on failure, consistent with the POSIX threads
  * functions, rather than returning -errno. */
@@ -125,11 +130,14 @@ out_free:
 	return ret;
 }
 
-int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
+static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
+		     char *argv[])
 {
 	extern int optind, opterr, optopt;
 	extern char *optarg;
-	int ret, longindex, c;
+	int longindex, c;
+
+	int ret = 0;
 
 	static struct option longopts[] = {
 		{"help", no_argument, NULL, 'h'},
@@ -139,6 +147,7 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 		{"solver", required_argument, NULL, 'k'},
 		{"system", required_argument, NULL, 's'},
 		{"solver-report", no_argument, NULL, 'r'},
+		{"estimate", required_argument, NULL, 'e'},
 		{"pipelined", required_argument, NULL, 'p'},
 		{"max-builds", required_argument, NULL, 'm'},
 		{"close-unused-fd", required_argument, NULL, 'c'},
@@ -146,7 +155,7 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 		{NULL, 0, NULL, 0},
 	};
 
-	while ((c = getopt_long(argc, argv, "hfds:r::m:p:c:l:k:", longopts,
+	while ((c = getopt_long(argc, argv, "hfds:r::m:p:c:l:k:e:", longopts,
 				&longindex)) != -1) {
 		switch (c) {
 		case 'h':
@@ -168,6 +177,28 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 		case 'r':
 			opts->solver_report = true;
 			break;
+		case 'e':
+			if (opts->estimate) {
+				fprintf(stderr,
+					"option -%c can't be redefined "
+					"Try 'evanix --help' for more "
+					"information.\n",
+					c);
+				return -EINVAL;
+			}
+
+			ret = sqlite3_open_v2(optarg, &opts->estimate,
+					      SQLITE_OPEN_READONLY |
+						      SQLITE_OPEN_FULLMUTEX,
+					      NULL);
+			if (ret != SQLITE_OK) {
+				print_err("Can't open database: %s",
+					  sqlite3_errmsg(opts->estimate));
+				ret = -EPERM;
+				goto out_free_evanix;
+			}
+
+			break;
 		case 'k':
 			if (!strcmp(optarg, "conformity")) {
 				opts->solver = solver_conformity;
@@ -182,7 +213,8 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				return -EINVAL;
+				ret = -EINVAL;
+				goto out_free_evanix;
 			}
 			break;
 		case 'm':
@@ -194,7 +226,8 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				return -EINVAL;
+				ret = -EINVAL;
+				goto out_free_evanix;
 			}
 
 			opts->max_builds = ret;
@@ -207,7 +240,8 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				return -EINVAL;
+				ret = -EINVAL;
+				goto out_free_evanix;
 			}
 
 			opts->ispipelined = ret;
@@ -220,7 +254,8 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				return -EINVAL;
+				ret = -EINVAL;
+				goto out_free_evanix;
 			}
 
 			opts->close_unused_fd = ret;
@@ -233,7 +268,8 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				return -EINVAL;
+				ret = -EINVAL;
+				goto out_free_evanix;
 			}
 
 			opts->check_cache_status = ret;
@@ -241,20 +277,45 @@ int opts_read(struct evanix_opts_t *opts, char **expr, int argc, char *argv[])
 		default:
 			fprintf(stderr,
 				"Try 'evanix --help' for more information.\n");
-			return -EINVAL;
+			ret = -EINVAL;
+			goto out_free_evanix;
 			break;
 		}
 	}
 	if (optind != argc - 1) {
 		fprintf(stderr, "evanix: invalid expr operand\n"
 				"Try 'evanix --help' for more information.\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto out_free_evanix;
 	}
 
 	if (opts->solver == solver_highs)
 		opts->ispipelined = false;
 
-	*expr = argv[optind];
+out_free_evanix:
+	if (ret != 0)
+		evanix_free(opts);
+	else
+		*expr = argv[optind];
+
+	return ret;
+}
+
+static int evanix_free(struct evanix_opts_t *opts)
+{
+	int ret;
+
+	if (opts->estimate) {
+		ret = sqlite3_close(opts->estimate);
+		if (ret != SQLITE_OK) {
+			print_err("Can't open database: %s",
+				  sqlite3_errmsg(opts->estimate));
+			return -EPERM;
+		}
+
+		opts->estimate = NULL;
+	}
+
 	return 0;
 }
 
@@ -268,6 +329,10 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 
 	ret = evanix(argv[optind]);
+	if (ret < 0)
+		exit(EXIT_FAILURE);
+
+	ret = evanix_free(&evanix_opts);
 	if (ret < 0)
 		exit(EXIT_FAILURE);
 
