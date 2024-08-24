@@ -20,6 +20,7 @@ static const char usage[] =
 	"built.\n"
 	"  -s, --system                       System to build for.\n"
 	"  -m, --max-builds                   Max number of builds.\n"
+	"  -t, --max-time                     Max time available in seconds.\n"
 	"  -b, --break-evanix                 Enable experimental features.\n"
 	"  -r, --solver-report                Print solver report.\n"
 	"  -p, --pipelined            <bool>  Use evanix build pipeline.\n"
@@ -35,6 +36,7 @@ struct evanix_opts_t evanix_opts = {
 	.ispipelined = true,
 	.isdryrun = false,
 	.max_builds = 0,
+	.max_time = 0,
 	.system = NULL,
 	.solver_report = false,
 	.check_cache_status = true,
@@ -147,6 +149,7 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 		{"solver", required_argument, NULL, 'k'},
 		{"system", required_argument, NULL, 's'},
 		{"solver-report", no_argument, NULL, 'r'},
+		{"max-time", required_argument, NULL, 't'},
 		{"estimate", required_argument, NULL, 'e'},
 		{"pipelined", required_argument, NULL, 'p'},
 		{"max-builds", required_argument, NULL, 'm'},
@@ -155,7 +158,7 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 		{NULL, 0, NULL, 0},
 	};
 
-	while ((c = getopt_long(argc, argv, "hfds:r::m:p:c:l:k:e:", longopts,
+	while ((c = getopt_long(argc, argv, "hfds:r::m:p:c:l:k:e:t:", longopts,
 				&longindex)) != -1) {
 		switch (c) {
 		case 'h':
@@ -232,6 +235,21 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 
 			opts->max_builds = ret;
 			break;
+		case 't':
+			ret = atoi(optarg);
+			if (ret <= 0) {
+				fprintf(stderr,
+					"option -%c requires a natural number "
+					"argument\n"
+					"Try 'evanix --help' for more "
+					"information.\n",
+					c);
+				ret = -EINVAL;
+				goto out_free_evanix;
+			}
+
+			opts->max_time = ret;
+			break;
 		case 'p':
 			ret = atob(optarg);
 			if (ret < 0) {
@@ -284,6 +302,17 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 	}
 	if (optind != argc - 1) {
 		fprintf(stderr, "evanix: invalid expr operand\n"
+				"Try 'evanix --help' for more information.\n");
+		ret = -EINVAL;
+		goto out_free_evanix;
+	} else if (opts->max_time && opts->max_builds) {
+		fprintf(stderr, "evanix: options --max-time and --max-builds "
+				"are mutually exclusive\n"
+				"Try 'evanix --help' for more information.\n");
+		ret = -EINVAL;
+		goto out_free_evanix;
+	} else if (opts->max_time && !opts->estimate) {
+		fprintf(stderr, "evanix: option --max-time implies --estimate\n"
 				"Try 'evanix --help' for more information.\n");
 		ret = -EINVAL;
 		goto out_free_evanix;

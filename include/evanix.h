@@ -17,6 +17,7 @@ struct evanix_opts_t {
 	char *system;
 	struct sqlite3 *estimate;
 	uint32_t max_builds;
+	uint32_t max_time;
 	int (*solver)(struct job **, struct job_clist *, int32_t);
 };
 

@@ -241,8 +241,15 @@ int queue_thread_new(struct queue_thread **queue_thread, FILE *stream)
 		ret = -errno;
 		goto out_free_qt;
 	}
+
+	if (evanix_opts.max_builds)
+		qt->queue->resources = evanix_opts.max_builds;
+	else if (evanix_opts.max_time)
+		qt->queue->resources = evanix_opts.max_time;
+	else
+		qt->queue->resources = 0;
+
 	qt->queue->htab = NULL;
-	qt->queue->resources = evanix_opts.max_builds;
 	qt->queue->jobid = NULL;
 	qt->queue->state = Q_SEM_WAIT;
 	ret = sem_init(&qt->queue->sem, 0, 0);
