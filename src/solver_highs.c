@@ -89,8 +89,13 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 		ret = -errno;
 		goto out_free_col_profit;
 	}
-	for (size_t i = 0; i < jobid->filled; i++)
-		constraint_value[i] = 1.0;
+	for (size_t i = 0; i < jobid->filled; i++) {
+		ret = job_cost(jobid->jobs[i]);
+		if (ret < 0)
+			return ret;
+
+		constraint_value[i] = ret;
+	}
 
 	ret = Highs_addRow(highs, 0, resources, jobid->filled, constraint_index,
 			   constraint_value);

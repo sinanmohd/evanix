@@ -64,6 +64,10 @@ static char *drv_path_to_pname(char *drv_path)
 	if (p != NULL)
 		*p = '\0';
 
+	p = strstr(pname, ".drv");
+	if (p != NULL)
+		*p = '\0';
+
 	return pname;
 }
 
@@ -151,10 +155,13 @@ int job_parents_list_insert(struct job *job, struct job *parent)
 	return 0;
 }
 
-static int job_cost_estimate(struct job *job)
+int job_cost(struct job *job)
 {
 	int ret;
 	char *pname;
+
+	if (!evanix_opts.max_time)
+		return 1;
 
 	pname = drv_path_to_pname(job->drv_path);
 	if (pname == NULL) {
@@ -163,6 +170,12 @@ static int job_cost_estimate(struct job *job)
 		return -EINVAL;
 	}
 
+	ret = sqlite3_reset(evanix_opts.estimate.statement);
+	if (ret != SQLITE_OK) {
+		print_err("%s", "Failed to reset sql statement");
+		ret = -EPERM;
+		goto out_free_pname;
+	}
 	ret = sqlite3_bind_text(evanix_opts.estimate.statement, 1, pname, -1,
 				NULL);
 	if (ret != SQLITE_OK) {
@@ -173,10 +186,10 @@ static int job_cost_estimate(struct job *job)
 
 	ret = sqlite3_step(evanix_opts.estimate.statement);
 	if (ret == SQLITE_DONE) {
+		print_err("Failed to acquire statistics for %s", pname);
 		ret = -ENOENT;
 		goto out_free_pname;
-	}
-	if (ret != SQLITE_ROW) {
+	} else if (ret != SQLITE_ROW) {
 		print_err("%s", "Failed to step sql");
 		ret = -EPERM;
 		goto out_free_pname;
@@ -192,13 +205,22 @@ out_free_pname:
 
 int job_cost_recursive(struct job *job)
 {
-	int32_t builds = 1;
+	int ret, builds;
+
+	ret = job_cost(job);
+	if (ret < 0)
+		return ret;
+	builds = ret;
 
 	for (size_t i = 0; i < job->deps_filled; i++) {
 		if (job->deps[i]->insubstituters)
 			continue;
 
-		builds++;
+		ret = job_cost(job->deps[i]);
+		if (ret < 0)
+			return ret;
+
+		builds += ret;
 	}
 
 	return builds;

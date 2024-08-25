@@ -102,7 +102,7 @@ int queue_pop(struct queue *queue, struct job **job)
 	}
 
 	pthread_mutex_lock(&queue->mutex);
-	if (evanix_opts.max_builds) {
+	if (evanix_opts.max_builds || evanix_opts.max_time) {
 		ret = evanix_opts.solver(&j, &queue->jobs, queue->resources);
 		if (ret < 0)
 			goto out_mutex_unlock;

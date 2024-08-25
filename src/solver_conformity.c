@@ -39,18 +39,24 @@ int solver_conformity(struct job **job, struct job_clist *q, int32_t resources)
 {
 	struct job *j;
 	float conformity_cur;
+	int ret;
 
 	struct job *selected = NULL;
 	float conformity_max = -1;
 
 	CIRCLEQ_FOREACH (j, q, clist) {
-		if (j->stale) {
+		if (j->stale)
 			continue;
-		} else if (job_cost_recursive(j) > resources) {
+
+		ret = job_cost_recursive(j);
+		if (ret < 0)
+			return ret;
+
+		if (ret > resources) {
 			job_stale_set(j);
 			if (evanix_opts.solver_report) {
 				printf("❌ refusing to build %s, cost: %d\n",
-				       j->drv_path, job_cost_recursive(j));
+				       j->drv_path, ret);
 			}
 		}
 	}

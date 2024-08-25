@@ -50,6 +50,7 @@ int job_cost_recursive(struct job *job);
 int job_parents_list_insert(struct job *job, struct job *parent);
 void job_deps_list_rm(struct job *job, struct job *dep);
 void job_stale_set(struct job *job);
+int job_cost(struct job *job);
 
 #define JOBS_H
 #endif
