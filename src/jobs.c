@@ -170,13 +170,13 @@ int job_cost(struct job *job)
 		return -EINVAL;
 	}
 
-	ret = sqlite3_reset(evanix_opts.estimate.statement);
+	ret = sqlite3_reset(evanix_opts.statistics.statement);
 	if (ret != SQLITE_OK) {
 		print_err("%s", "Failed to reset sql statement");
 		ret = -EPERM;
 		goto out_free_pname;
 	}
-	ret = sqlite3_bind_text(evanix_opts.estimate.statement, 1, pname, -1,
+	ret = sqlite3_bind_text(evanix_opts.statistics.statement, 1, pname, -1,
 				NULL);
 	if (ret != SQLITE_OK) {
 		print_err("%s", "Failed to bind sql");
@@ -184,7 +184,7 @@ int job_cost(struct job *job)
 		goto out_free_pname;
 	}
 
-	ret = sqlite3_step(evanix_opts.estimate.statement);
+	ret = sqlite3_step(evanix_opts.statistics.statement);
 	if (ret == SQLITE_DONE) {
 		print_err("Failed to acquire statistics for %s", pname);
 		ret = -ENOENT;
@@ -195,7 +195,7 @@ int job_cost(struct job *job)
 		goto out_free_pname;
 	}
 
-	ret = sqlite3_column_int(evanix_opts.estimate.statement, 0);
+	ret = sqlite3_column_int(evanix_opts.statistics.statement, 0);
 
 out_free_pname:
 	free(pname);

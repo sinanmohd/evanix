@@ -26,7 +26,7 @@ static const char usage[] =
 	"  -p, --pipelined            <bool>  Use evanix build pipeline.\n"
 	"  -l, --check_cache-status   <bool>  Perform cache locality check.\n"
 	"  -c, --close-unused-fd      <bool>  Close stderr on exec.\n"
-	"  -e, --estimate             <path>  Path to time estimate database.\n"
+	"  -e, --statistics             <path>  Path to time statistics database.\n"
 	"  -k, --solver sjf|conformity|highs  Solver to use.\n"
 	"\n";
 
@@ -42,8 +42,8 @@ struct evanix_opts_t evanix_opts = {
 	.check_cache_status = true,
 	.solver = solver_highs,
 	.break_evanix = false,
-	.estimate.db = NULL,
-	.estimate.statement = NULL,
+	.statistics.db = NULL,
+	.statistics.statement = NULL,
 };
 
 static int evanix_build_thread_create(struct build_thread *build_thread);
@@ -140,9 +140,9 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 	extern char *optarg;
 	int longindex, c;
 
-	const char *query = "SELECT duration "
-			    "FROM estimate "
-			    "WHERE estimate.pname = ? "
+	const char *query = "SELECT statistics.mean_duration "
+			    "FROM statistics "
+			    "WHERE statistics.pname = ? "
 			    "LIMIT 1 ";
 
 	int ret = 0;
@@ -156,7 +156,7 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 		{"system", required_argument, NULL, 's'},
 		{"solver-report", no_argument, NULL, 'r'},
 		{"max-time", required_argument, NULL, 't'},
-		{"estimate", required_argument, NULL, 'e'},
+		{"statistics", required_argument, NULL, 'a'},
 		{"pipelined", required_argument, NULL, 'p'},
 		{"max-builds", required_argument, NULL, 'm'},
 		{"close-unused-fd", required_argument, NULL, 'c'},
@@ -164,7 +164,7 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 		{NULL, 0, NULL, 0},
 	};
 
-	while ((c = getopt_long(argc, argv, "hfds:r::m:p:c:l:k:e:t:", longopts,
+	while ((c = getopt_long(argc, argv, "hfds:r::m:p:c:l:k:a:t:", longopts,
 				&longindex)) != -1) {
 		switch (c) {
 		case 'h':
@@ -186,8 +186,8 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 		case 'r':
 			opts->solver_report = true;
 			break;
-		case 'e':
-			if (opts->estimate.db) {
+		case 'a':
+			if (opts->statistics.db) {
 				fprintf(stderr,
 					"option -%c can't be redefined "
 					"Try 'evanix --help' for more "
@@ -196,18 +196,18 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 				return -EINVAL;
 			}
 
-			ret = sqlite3_open_v2(optarg, &opts->estimate.db,
+			ret = sqlite3_open_v2(optarg, &opts->statistics.db,
 					      SQLITE_OPEN_READONLY |
 						      SQLITE_OPEN_FULLMUTEX,
 					      NULL);
 			if (ret != SQLITE_OK) {
 				print_err("Can't open database: %s",
-					  sqlite3_errmsg(opts->estimate.db));
+					  sqlite3_errmsg(opts->statistics.db));
 				ret = -EPERM;
 				goto out_free_evanix;
 			}
-			ret = sqlite3_prepare_v2(opts->estimate.db, query, -1,
-						 &opts->estimate.statement,
+			ret = sqlite3_prepare_v2(opts->statistics.db, query, -1,
+						 &opts->statistics.statement,
 						 NULL);
 			if (ret != SQLITE_OK) {
 				print_err("%s", "Failed to prepare sql");
@@ -324,8 +324,8 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 				"Try 'evanix --help' for more information.\n");
 		ret = -EINVAL;
 		goto out_free_evanix;
-	} else if (opts->max_time && !opts->estimate.db) {
-		fprintf(stderr, "evanix: option --max-time implies --estimate\n"
+	} else if (opts->max_time && !opts->statistics.db) {
+		fprintf(stderr, "evanix: option --max-time implies --statistics\n"
 				"Try 'evanix --help' for more information.\n");
 		ret = -EINVAL;
 		goto out_free_evanix;
@@ -349,20 +349,20 @@ static int evanix_free(struct evanix_opts_t *opts)
 {
 	int ret;
 
-	if (opts->estimate.statement) {
-		sqlite3_finalize(opts->estimate.statement);
-		opts->estimate.statement = NULL;
+	if (opts->statistics.statement) {
+		sqlite3_finalize(opts->statistics.statement);
+		opts->statistics.statement = NULL;
 	}
 
-	if (opts->estimate.db) {
-		ret = sqlite3_close(opts->estimate.db);
+	if (opts->statistics.db) {
+		ret = sqlite3_close(opts->statistics.db);
 		if (ret != SQLITE_OK) {
 			print_err("Can't open database: %s",
-				  sqlite3_errmsg(opts->estimate.db));
+				  sqlite3_errmsg(opts->statistics.db));
 			return -EPERM;
 		}
 
-		opts->estimate.db = NULL;
+		opts->statistics.db = NULL;
 	}
 
 	return 0;

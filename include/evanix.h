@@ -6,7 +6,7 @@
 
 #ifndef EVANIX_H
 
-struct estimate {
+struct statistics {
 	struct sqlite3 *db;
 	sqlite3_stmt *statement;
 };
@@ -20,7 +20,7 @@ struct evanix_opts_t {
 	bool check_cache_status;
 	bool break_evanix;
 	char *system;
-	struct estimate estimate;
+	struct statistics statistics;
 	uint32_t max_builds;
 	uint32_t max_time;
 	int (*solver)(struct job **, struct job_clist *, int32_t);
