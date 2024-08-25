@@ -337,12 +337,12 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 	}
 
 out_free_evanix:
-	if (ret != 0)
+	if (ret < 0)
 		evanix_free(opts);
 	else
 		*expr = argv[optind];
 
-	return ret;
+	return ret < 0 ? ret : 0;
 }
 
 static int evanix_free(struct evanix_opts_t *opts)
