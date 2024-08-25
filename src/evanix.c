@@ -331,8 +331,10 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 		goto out_free_evanix;
 	}
 
-	if (opts->solver == solver_highs)
+	if (opts->solver == solver_highs &&
+	    (opts->max_time || opts->max_builds)) {
 		opts->ispipelined = false;
+	}
 
 out_free_evanix:
 	if (ret != 0)
