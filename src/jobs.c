@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <regex.h>
 
 #include <cjson/cJSON.h>
 #include <sqlite3.h>
@@ -29,6 +30,7 @@ static int job_read_outputs(struct job *job, cJSON *outputs);
 static int job_deps_list_insert(struct job *job, struct job *dep);
 static int job_output_list_insert(struct job *job, struct output *output);
 static char *drv_path_to_pname(char *drv_path);
+static int drv_to_pname(char *drv_path, char **pname);
 
 static void output_free(struct output *output)
 {
@@ -39,6 +41,68 @@ static void output_free(struct output *output)
 	free(output->store_path);
 
 	free(output);
+}
+
+static int drv_to_pname(char *drv_path, char **pname)
+{
+	regmatch_t pmatch[2];
+	FILE *drv_file;
+	size_t drv_len;
+	regex_t regex;
+	char *ret_pname;
+	int ret;
+
+	char *drv_string = NULL;
+	char *pattern = "\\(\"pname\",\"([^\"]*)";
+
+	drv_file = fopen(drv_path, "r");
+	if (drv_file == NULL) {
+		print_err("%s", strerror(errno));
+		return -errno;
+	}
+
+	ret = getline(&drv_string, &drv_len, drv_file);
+	if (ret < 0) {
+		print_err("%s", strerror(errno));
+		ret = -errno;
+		goto out_close_drv_file;
+	}
+
+	ret = regcomp(&regex, pattern, REG_EXTENDED);
+	if (ret != 0) {
+		print_err("%s", "Failed to compile regex");
+		ret = -EPERM;
+		goto out_close_drv_file;
+	}
+
+	ret = regexec(&regex, drv_string, 2, pmatch, 0);
+	if (ret != 0) {
+		print_err("%s", "Failed to exec regex");
+		ret = -EPERM;
+		goto out_free_regex;
+	} else if (pmatch[1].rm_so == -1) {
+		print_err("%s", "Failed to match subexpression");
+		ret = -EPERM;
+		goto out_free_regex;
+	}
+
+	ret_pname = strndup(drv_string + pmatch[1].rm_so,
+			    pmatch[1].rm_eo - pmatch[1].rm_so);
+	if (ret_pname == NULL) {
+		print_err("%s", strerror(errno));
+		ret = -errno;
+		goto out_close_drv_file;
+	}
+	*pname = ret_pname;
+
+out_free_regex:
+	regfree(&regex);
+out_close_drv_file:
+	if (fclose(drv_file) != 0)
+		print_err("%s", strerror(errno));
+	free(drv_string);
+
+	return ret;
 }
 
 static char *drv_path_to_pname(char *drv_path)
