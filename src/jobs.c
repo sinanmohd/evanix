@@ -91,7 +91,7 @@ static int drv_to_pname(char *drv_path, char **pname)
 	if (ret_pname == NULL) {
 		print_err("%s", strerror(errno));
 		ret = -errno;
-		goto out_close_drv_file;
+		goto out_free_regex;
 	}
 	*pname = ret_pname;
 
