@@ -455,7 +455,7 @@ static int job_read_cache(struct job *job)
 			i++;
 	}
 
-	ret = 0;
+	ret = JOB_READ_SUCCESS;
 
 out_free_line:
 	free(line);
@@ -548,9 +548,10 @@ int job_read(FILE *stream, struct job **job)
 		ret = job_read_cache(j);
 		if (ret < 0)
 			goto out_free;
+	} else {
+		ret = JOB_READ_SUCCESS;
 	}
 
-	ret = JOB_READ_SUCCESS;
 
 out_free:
 	cJSON_Delete(root);
