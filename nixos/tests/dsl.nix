@@ -249,7 +249,7 @@ in
         else:
           expect_n_chosen_nodes = None
 
-        if expect_chosen_nodes or expect_n_chosen_nodes is not None:
+        if expect_chosen_nodes or expect_n_chosen_builds is not None or expect_n_chosen_downloads is not None:
           evanix = subprocess.run(evanix_args, check=True, stdout=subprocess.PIPE)
           evanix_output = evanix.stdout.decode("utf-8")
           evanix_choices = parse_evanix_dry_run(evanix_output)

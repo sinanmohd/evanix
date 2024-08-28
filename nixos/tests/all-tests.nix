@@ -10,6 +10,20 @@ let
     nodes.d.inputs.c = { }; # d->c
   };
 
+  #  A
+  #  |
+  #  B
+  #  |
+  #  C
+  transitive.dag = {
+    nodes.a = {
+      goal = true;
+      inputs.b = { };
+    };
+    nodes.b.inputs.c = { };
+    nodes.c = {};
+  };
+
   #   A   B   C     D
   #   \   |  /      |
   #     U  V        W
@@ -86,6 +100,26 @@ builtins.mapAttrs
           dag.test.unconstrained.downloads = 0;
         }
         diamond
+      ];
+    };
+
+    transitive-unbuilt-3 = {
+      imports = [
+        {
+          dag = {
+            test.unconstrained.builds = 3;
+
+            constraints.builds = 2;
+            test.constrained.builds = 0;
+
+            nodes = {
+              a.test.needed = true;
+              b.test.needed = true;
+              c.test.needed = true;
+            };
+          };
+        }
+        transitive
       ];
     };
 
