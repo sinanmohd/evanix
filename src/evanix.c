@@ -26,7 +26,7 @@ static const char usage[] =
 	"  -p, --pipelined            <bool>  Use evanix build pipeline.\n"
 	"  -l, --check_cache-status   <bool>  Perform cache locality check.\n"
 	"  -c, --close-unused-fd      <bool>  Close stderr on exec.\n"
-	"  -e, --statistics             <path>  Path to time statistics database.\n"
+	"  -e, --statistics           <path>  Path to time statistics database.\n"
 	"  -k, --solver sjf|conformity|highs  Solver to use.\n"
 	"\n";
 
