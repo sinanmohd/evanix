@@ -399,7 +399,7 @@ static int job_read_cache(struct job *job)
 {
 	size_t argindex, n;
 	FILE *nix_build_stream;
-	char *args[4];
+	char *args[4], *trimmed;
 	int ret, nlines;
 	struct job *j;
 
@@ -409,6 +409,7 @@ static int job_read_cache(struct job *job)
 	args[argindex++] = "--dry-run";
 	args[argindex++] = job->drv_path;
 	args[argindex++] = NULL;
+	struct job *dep_job = NULL;
 
 	ret = vpopen(&nix_build_stream, "nix-build", args, VPOPEN_STDERR);
 	if (ret < 0)
@@ -425,10 +426,18 @@ static int job_read_cache(struct job *job)
 			continue;
 		}
 
-		j = job_search(job, trim(line));
+		trimmed = trim(line);
+		j = job_search(job, trimmed);
 		if (j == NULL) {
-			/* nix-eval-jobs doesn't count src */
-			continue;
+			ret = job_new(&dep_job, NULL, trimmed, NULL, job);
+			if (ret < 0)
+				goto out_free_line;
+
+			ret = job_deps_list_insert(job, dep_job);
+			if (ret < 0)
+				goto out_free_line;
+
+			j = dep_job;
 		}
 
 		if (in_fetched_block)
@@ -460,6 +469,8 @@ static int job_read_cache(struct job *job)
 out_free_line:
 	free(line);
 	fclose(nix_build_stream);
+	if (ret < 0)
+		job_free(dep_job);
 
 	return ret;
 }
