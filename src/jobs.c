@@ -1,9 +1,9 @@
 #include <errno.h>
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <regex.h>
 
 #include <cjson/cJSON.h>
 #include <sqlite3.h>
@@ -551,7 +551,6 @@ int job_read(FILE *stream, struct job **job)
 	} else {
 		ret = JOB_READ_SUCCESS;
 	}
-
 
 out_free:
 	cJSON_Delete(root);

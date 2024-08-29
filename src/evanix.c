@@ -26,7 +26,8 @@ static const char usage[] =
 	"  -p, --pipelined            <bool>  Use evanix build pipeline.\n"
 	"  -l, --check_cache-status   <bool>  Perform cache locality check.\n"
 	"  -c, --close-unused-fd      <bool>  Close stderr on exec.\n"
-	"  -e, --statistics           <path>  Path to time statistics database.\n"
+	"  -e, --statistics           <path>  Path to time statistics "
+	"database.\n"
 	"  -k, --solver sjf|conformity|highs  Solver to use.\n"
 	"\n";
 
@@ -325,8 +326,9 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 		ret = -EINVAL;
 		goto out_free_evanix;
 	} else if (opts->max_time && !opts->statistics.db) {
-		fprintf(stderr, "evanix: option --max-time implies --statistics\n"
-				"Try 'evanix --help' for more information.\n");
+		fprintf(stderr,
+			"evanix: option --max-time implies --statistics\n"
+			"Try 'evanix --help' for more information.\n");
 		ret = -EINVAL;
 		goto out_free_evanix;
 	}
