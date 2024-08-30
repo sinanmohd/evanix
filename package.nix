@@ -9,7 +9,7 @@
   pkg-config,
   stdenv,
   uthash,
-  sqlite
+  sqlite,
 }:
 stdenv.mkDerivation (finalAttrs: {
   name = "evanix";

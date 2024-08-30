@@ -21,7 +21,7 @@ let
       inputs.b = { };
     };
     nodes.b.inputs.c = { };
-    nodes.c = {};
+    nodes.c = { };
   };
 
   #   A   B   C     D
@@ -36,9 +36,18 @@ let
         };
       in
       {
-        a = goalDependsOn [ "u" "v" ];
-        b = goalDependsOn [ "u" "v" ];
-        c = goalDependsOn [ "u" "v" ];
+        a = goalDependsOn [
+          "u"
+          "v"
+        ];
+        b = goalDependsOn [
+          "u"
+          "v"
+        ];
+        c = goalDependsOn [
+          "u"
+          "v"
+        ];
         d = goalDependsOn [ "w" ];
 
         u = { };
