@@ -14,6 +14,7 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 {
 	HighsInt precedence_index[2];
 	double precedence_value[2];
+	int num_non_zero;
 	struct job *j;
 	int ret;
 
@@ -80,24 +81,27 @@ static int solver_highs_unwrapped(double *solution, struct job_clist *q,
 		ret = -errno;
 		goto out_free_col_profit;
 	}
-	for (size_t i = 0; i < jobid->filled; i++)
-		constraint_index[i] = i;
-
 	constraint_value = malloc(jobid->filled * sizeof(*constraint_value));
 	if (constraint_value == NULL) {
 		print_err("%s", strerror(errno));
 		ret = -errno;
 		goto out_free_col_profit;
 	}
+
+	num_non_zero = 0;
 	for (size_t i = 0; i < jobid->filled; i++) {
 		ret = job_cost(jobid->jobs[i]);
 		if (ret < 0)
 			return ret;
+		else if (ret == 0)
+			continue;
 
-		constraint_value[i] = ret;
+		constraint_value[num_non_zero] = ret;
+		constraint_index[num_non_zero] = i;
+		num_non_zero++;
 	}
 
-	ret = Highs_addRow(highs, 0, resources, jobid->filled, constraint_index,
+	ret = Highs_addRow(highs, 0, resources, num_non_zero, constraint_index,
 			   constraint_value);
 	if (ret != kHighsStatusOk) {
 		print_err("%s", "highs did not return kHighsStatusOk");

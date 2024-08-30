@@ -224,6 +224,9 @@ int job_cost(struct job *job)
 	int ret;
 	char *pname;
 
+	if (job->insubstituters)
+		return 0;
+
 	if (!evanix_opts.max_time)
 		return 1;
 
