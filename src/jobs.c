@@ -12,11 +12,12 @@
 #include "jobs.h"
 #include "util.h"
 
+#define NIX_STORE_PATH "/nix/store/"
+
 #ifndef NIX_EVAL_JOBS_PATH
 #warning "NIX_EVAL_JOBS_PATH not defined, evanix will rely on PATH instead"
 #define NIX_EVAL_JOBS_PATH nix - eval - jobs
 #endif
-
 #define XSTR(x) STR(x)
 #define STR(x)	#x
 #pragma message "NIX_EVAL_JOBS_PATH=" XSTR(NIX_EVAL_JOBS_PATH)
@@ -422,14 +423,20 @@ static int job_read_cache(struct job *job)
 	nlines = 0;
 	for (bool in_fetched_block = false;
 	     getline(&line, &n, nix_build_stream) >= 0; nlines++) {
+		trimmed = trim(line);
+
 		if (strstr(line, "will be built")) {
 			continue;
 		} else if (strstr(line, "will be fetched")) {
 			in_fetched_block = true;
 			continue;
+		} else if (strncmp(trimmed, NIX_STORE_PATH,
+				   sizeof(NIX_STORE_PATH) - 1)) {
+			/* TODO: use libstore instead
+			 * */
+			continue;
 		}
 
-		trimmed = trim(line);
 		j = job_search(job, trimmed);
 		if (j == NULL) {
 			ret = job_new(&dep_job, NULL, trimmed, NULL, job);
