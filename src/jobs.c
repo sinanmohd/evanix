@@ -566,6 +566,8 @@ int job_read(FILE *stream, struct job **job)
 		ret = JOB_READ_SUCCESS;
 	}
 
+	for (size_t i = 0; i < j->deps_filled; i++)
+		printf("\t %d: %s\n", j->deps[i]->insubstituters, j->deps[i]->drv_path);
 out_free:
 	cJSON_Delete(root);
 	if (ret != JOB_READ_SUCCESS)
