@@ -508,16 +508,14 @@ int job_read(FILE *stream, struct job **job)
 		goto out_free;
 	}
 
-	if (evanix_opts.system != NULL) {
-		temp = cJSON_GetObjectItemCaseSensitive(root, "system");
-		if (!cJSON_IsString(temp)) {
-			ret = JOB_READ_JSON_INVAL;
-			goto out_free;
-		}
-		if (strcmp(evanix_opts.system, temp->valuestring)) {
-			ret = JOB_READ_SYS_MISMATCH;
-			goto out_free;
-		}
+	temp = cJSON_GetObjectItemCaseSensitive(root, "system");
+	if (!cJSON_IsString(temp)) {
+		ret = JOB_READ_JSON_INVAL;
+		goto out_free;
+	}
+	if (strcmp(evanix_opts.system, temp->valuestring)) {
+		ret = JOB_READ_SYS_MISMATCH;
+		goto out_free;
 	}
 
 	temp = cJSON_GetObjectItemCaseSensitive(root, "name");

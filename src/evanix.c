@@ -1,10 +1,12 @@
 #include <errno.h>
 #include <getopt.h>
+#include <nix/nix_api_value.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "build.h"
 #include "evanix.h"
+#include "nix.h"
 #include "queue.h"
 #include "solver_conformity.h"
 #include "solver_highs.h"
@@ -52,6 +54,8 @@ static int evanix(char *expr);
 static int evanix_free(struct evanix_opts_t *opts);
 static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 		     char *argv[]);
+static int evanix_opts_system_set(struct evanix_opts_t *opts,
+				  nix_c_context *nix_ctx);
 
 /* This function returns errno on failure, consistent with the POSIX threads
  * functions, rather than returning -errno. */
@@ -71,12 +75,41 @@ static int evanix_build_thread_create(struct build_thread *build_thread)
 	return 0;
 }
 
+static int evanix_opts_system_set(struct evanix_opts_t *opts,
+				  nix_c_context *nix_ctx)
+{
+	nix_err nix_ret;
+
+	if (opts->system)
+		return 0;
+
+	nix_ret = nix_setting_get(nix_ctx, "system", _nix_get_string_strdup,
+				  &opts->system);
+	if (nix_ret != NIX_OK) {
+		print_err("%s", nix_err_msg(NULL, nix_ctx, NULL));
+		return -EPERM;
+	} else if (opts->system == NULL) {
+		return -EPERM;
+	}
+
+	return 0;
+}
+
 static int evanix(char *expr)
 {
+	nix_c_context *nix_ctx = NULL;
 	struct queue_thread *queue_thread = NULL;
 	struct build_thread *build_thread = NULL;
 	FILE *jobs_stream = NULL; /* nix-eval-jobs stdout */
 	int ret = 0;
+
+	ret = _nix_init(&nix_ctx);
+	if (ret < 0)
+		goto out_free;
+
+	ret = evanix_opts_system_set(&evanix_opts, nix_ctx);
+	if (ret < 0)
+		goto out_free;
 
 	ret = jobs_init(&jobs_stream, expr);
 	if (ret < 0)
@@ -127,6 +160,7 @@ static int evanix(char *expr)
 	}
 
 out_free:
+	nix_c_context_free(nix_ctx);
 	fclose(jobs_stream);
 	queue_thread_free(queue_thread);
 	free(build_thread);
@@ -182,7 +216,13 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 			opts->isdryrun = true;
 			break;
 		case 's':
-			opts->system = optarg;
+			opts->system = strdup(optarg);
+			if (opts->system == NULL) {
+				print_err("%s", strerror(errno));
+				ret = -errno;
+				goto out_free_evanix;
+			}
+
 			break;
 		case 'r':
 			opts->solver_report = true;
@@ -194,7 +234,8 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 					"Try 'evanix --help' for more "
 					"information.\n",
 					c);
-				return -EINVAL;
+				ret = -EINVAL;
+				goto out_free_evanix;
 			}
 
 			ret = sqlite3_open_v2(optarg, &opts->statistics.db,
@@ -212,7 +253,8 @@ static int opts_read(struct evanix_opts_t *opts, char **expr, int argc,
 						 NULL);
 			if (ret != SQLITE_OK) {
 				print_err("%s", "Failed to prepare sql");
-				return -EPERM;
+				ret = -EPERM;
+				goto out_free_evanix;
 			}
 
 			break;
@@ -351,11 +393,12 @@ static int evanix_free(struct evanix_opts_t *opts)
 {
 	int ret;
 
+	free(opts->system);
+
 	if (opts->statistics.statement) {
 		sqlite3_finalize(opts->statistics.statement);
 		opts->statistics.statement = NULL;
 	}
-
 	if (opts->statistics.db) {
 		ret = sqlite3_close(opts->statistics.db);
 		if (ret != SQLITE_OK) {

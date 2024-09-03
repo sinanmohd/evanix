@@ -11,10 +11,17 @@ e = executable(
 		'solver_conformity.c',
 		'solver_highs.c',
 		'solver_sjf.c',
+		'nix.c',
+	],
+
+	dependencies: [
+		cjson_dep,
+		highs_dep,
+		sqlite_dep,
+		nix_store_dep
 	],
 
 	include_directories: evanix_inc,
-	dependencies: [ cjson_dep, highs_dep, sqlite_dep ],
 	install: true,
 	c_args: [f'-DNIX_EVAL_JOBS_PATH=@NIX_EVAL_JOBS_PATH@'],
 )
