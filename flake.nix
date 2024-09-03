@@ -90,9 +90,12 @@
         }
       );
       legacyPackages = forAllSystems (
-        { pkgs, ... }:
+        { pkgs, system, ... }:
+        let
+          nixPkg = nix.packages.${system}.nix;
+        in
         {
-          nixosTests = pkgs.callPackage ./nixos/tests/all-tests.nix { };
+          nixosTests = pkgs.callPackage ./nixos/tests/all-tests.nix { nix = nixPkg; };
         }
       );
       checks = forAllSystems (

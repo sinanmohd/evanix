@@ -1,3 +1,4 @@
+{ nix }:
 { lib, config, ... }:
 
 let
@@ -92,7 +93,7 @@ in
   config.nodes.builder =
     { pkgs, ... }:
     let
-      evanix = pkgs.callPackage ../../package.nix { };
+      evanix = pkgs.callPackage ../../package.nix { inherit nix; };
 
       scope = pkgs.lib.makeScope pkgs.newScope scope-fun;
       configJson = (pkgs.formats.json { }).generate "nix-dag.json" config.dag;

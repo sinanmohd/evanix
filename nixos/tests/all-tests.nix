@@ -1,7 +1,12 @@
-{ lib, testers }:
+{
+  lib,
+  testers,
+  nix,
+  callPackage,
+}:
 
 let
-  dsl = ./dsl.nix;
+  dsl = callPackage ./dsl.nix { inherit nix; };
   diamond.dag = {
     nodes.a = { };
     nodes.b.inputs.a = { }; # b->a
