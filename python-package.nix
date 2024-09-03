@@ -9,6 +9,7 @@
   highs,
   uthash,
   sqlite,
+  nix,
 }:
 
 buildPythonPackage {
@@ -39,6 +40,7 @@ buildPythonPackage {
     makeWrapper
   ];
   buildInputs = [
+    nix
     cjson
     highs
     uthash

@@ -10,6 +10,7 @@
   stdenv,
   uthash,
   sqlite,
+  nix,
 }:
 stdenv.mkDerivation (finalAttrs: {
   name = "evanix";
@@ -35,6 +36,7 @@ stdenv.mkDerivation (finalAttrs: {
     makeWrapper
   ];
   buildInputs = [
+    nix
     cjson
     highs
     uthash

@@ -1,10 +1,21 @@
 {
   description = "A Nix build Scheduler";
 
-  inputs.nixpkgs.url = "github:NixOs/nixpkgs/nixos-unstable";
+  inputs = {
+    nixpkgs.url = "github:NixOs/nixpkgs/nixos-unstable";
+
+    nix = {
+      url = "github:NixOS/nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
 
   outputs =
-    { self, nixpkgs }:
+    {
+      self,
+      nixpkgs,
+      nix,
+    }:
     let
       lib = nixpkgs.lib;
 
@@ -49,19 +60,24 @@
 
       packages = forAllSystems (
         { system, pkgs }:
+        let
+          nixPkg = nix.packages.${system}.nix;
+        in
         {
           default = self.packages.${system}.evanix;
-          evanix = pkgs.callPackage ./package.nix { };
+          evanix = pkgs.callPackage ./package.nix { nix = nixPkg; };
           evanix-asan = self.packages.${system}.evanix.overrideAttrs (
             _: previousAttrs: {
               mesonFlags = previousAttrs.mesonFlags ++ [ (lib.mesonOption "b_sanitize" "address") ];
             }
           );
 
-          evanix-py = pkgs.python3Packages.callPackage ./python-package.nix { };
+          evanix-py = pkgs.python3Packages.callPackage ./python-package.nix { nix = nixPkg; };
           pythonWithEvanix =
             let
-              wrapper = pkgs.python3.withPackages (ps: [ (ps.callPackage ./python-package.nix { }) ]);
+              wrapper = pkgs.python3.withPackages (ps: [
+                (ps.callPackage ./python-package.nix { nix = nixPkg; })
+              ]);
             in
             wrapper.overrideAttrs (oldAttrs: {
               makeWrapperArgs = oldAttrs.makeWrapperArgs or [ ] ++ [
