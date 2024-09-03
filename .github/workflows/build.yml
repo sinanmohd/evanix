@@ -21,7 +21,7 @@ jobs:
       uses: DeterminateSystems/nix-installer-action@v13
     - uses: DeterminateSystems/magic-nix-cache-action@v7
     - name: Build some-pkgs
-      run: nix run github:Mic92/nix-fast-build -- --skip-cached --no-nom --flake ".#packages"
+      run: nix run github:Mic92/nix-fast-build -- --skip-cached --no-nom --flake ".#packages.$(nix eval --raw --impure --expr builtins.currentSystem)"
   nix-flake-check:
     strategy:
       fail-fast: false
