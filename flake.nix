@@ -26,7 +26,7 @@
           pkgs = import nixpkgs { inherit system; };
         };
 
-      supportedSystems = lib.systems.flakeExposed;
+      supportedSystems = [ "i686-linux" "x86_64-linux" "aarch64-linux" ];
       forAllSystems = f: lib.genAttrs supportedSystems (forSystem f);
     in
     {
