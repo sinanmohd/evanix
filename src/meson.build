@@ -12,6 +12,7 @@ e = executable(
 		'solver_highs.c',
 		'solver_sjf.c',
 		'nix.c',
+		'derivation.c',
 	],
 
 	dependencies: [
