@@ -1,6 +1,6 @@
-#include <uthash.h>
-#include <utarray.h>
 #include <curl/curl.h>
+#include <utarray.h>
+#include <uthash.h>
 
 typedef enum {
 	CACHE_LOCAL = 0,
@@ -23,4 +23,4 @@ struct cache {
 
 void cache_free(struct cache *cache);
 int cache_init(struct cache *cache);
-int cache_state_remote_read(struct cache *cache, const char *drv_path);
+int cache_state_remote_read(struct cache *cache, const char *output_path);

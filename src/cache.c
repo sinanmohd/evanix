@@ -5,7 +5,7 @@
 
 static void cache_htab_free(struct cache_htab *cache_htab);
 static int cache_htab_new(struct cache_htab **cache_htab, char *hash);
-static int hash_from_drv_path(const char *drv_path, char **hash);
+static int hash_from_output_path(const char *drv_path, char **hash);
 static size_t _curl_ignore_data(char __attribute__((unused)) * data,
 				size_t size, size_t nmemb,
 				__attribute__((unused)) void *userdata);
@@ -67,7 +67,7 @@ int cache_init(struct cache *cache)
 	return 0;
 }
 
-static int hash_from_drv_path(const char *drv_path, char **hash)
+static int hash_from_output_path(const char *drv_path, char **hash)
 {
 	char *start, *end;
 	int ret = 0;
@@ -154,13 +154,13 @@ static int cache_state_remote_read_unwrapped(struct cache *cache,
 	return cache_htab->cache_state;
 }
 
-int cache_state_remote_read(struct cache *cache, const char *drv_path)
+int cache_state_remote_read(struct cache *cache, const char *output_path)
 {
 	int ret;
 	char *hash, **substituter;
 	struct cache_htab *ch;
 
-	ret = hash_from_drv_path(drv_path, &hash);
+	ret = hash_from_output_path(output_path, &hash);
 	if (ret < 0)
 		return ret;
 
