@@ -62,6 +62,9 @@ out_free_sh:
 	return ret;
 }
 
+/* shamelessly copied from  nix::parseDerivation, https://github.com/NixOS/nix
+ * should be replaced with the Nix libstore C API when it's complete
+ * */
 static int drv_read_unwrapped(const char *drv_path, struct str_htab **str_htab)
 {
 	FILE *fp;
