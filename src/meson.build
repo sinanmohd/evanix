@@ -13,13 +13,15 @@ e = executable(
 		'solver_sjf.c',
 		'nix.c',
 		'derivation.c',
+		'cache.c',
 	],
 
 	dependencies: [
 		cjson_dep,
 		highs_dep,
 		sqlite_dep,
-		nix_store_dep
+		nix_store_dep,
+		libcurl_dep,
 	],
 
 	include_directories: evanix_inc,

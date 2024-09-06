@@ -22,6 +22,7 @@ cjson_dep = dependency('libcjson')
 nix_store_dep = dependency('nix-store-c')
 highs_dep = dependency('highs')
 sqlite_dep = dependency('sqlite3')
+libcurl_dep = dependency('libcurl')
 evanix_inc = include_directories('include')
 
 if get_option('build-python')

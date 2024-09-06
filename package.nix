@@ -11,6 +11,7 @@
   uthash,
   sqlite,
   nix,
+  curl,
 }:
 stdenv.mkDerivation (finalAttrs: {
   name = "evanix";
@@ -36,6 +37,7 @@ stdenv.mkDerivation (finalAttrs: {
     makeWrapper
   ];
   buildInputs = [
+    curl
     nix
     cjson
     highs

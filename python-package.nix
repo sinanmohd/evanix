@@ -10,6 +10,7 @@
   uthash,
   sqlite,
   nix,
+  curl,
 }:
 
 buildPythonPackage {
@@ -40,6 +41,7 @@ buildPythonPackage {
     makeWrapper
   ];
   buildInputs = [
+    curl
     nix
     cjson
     highs
