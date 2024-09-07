@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <unistd.h>
 
 #include "cache.h"
 #include "util.h"
@@ -12,6 +13,9 @@ static size_t _curl_ignore_data(char __attribute__((unused)) * data,
 static int cache_state_remote_read_unwrapped(struct cache *cache,
 					     struct cache_htab *cache_htab,
 					     const char *substituter);
+static int cache_state_local_read(const char *output_path);
+static int cache_state_remote_read(struct cache *cache,
+				   const char *output_path);
 
 static void cache_htab_free(struct cache_htab *cache_htab)
 {
@@ -53,7 +57,7 @@ void cache_free(struct cache *cache)
 int cache_init(struct cache *cache)
 {
 	/* TODO: use Nix C API */
-	char *cache_nixos_org = "cache.nixos.org";
+	char *cache_nixos_org = "https://cache.nixos.org/";
 	utarray_new(cache->substituters, &ut_str_icd);
 	utarray_push_back(cache->substituters, &cache_nixos_org);
 
@@ -111,10 +115,10 @@ static int cache_state_remote_read_unwrapped(struct cache *cache,
 	char url[2048];
 	long http_code;
 
-	ret = snprintf(url, sizeof(url), "https://%s/%s.narinfo", substituter,
+	ret = snprintf(url, sizeof(url), "%s%s.narinfo", substituter,
 		       cache_htab->hash);
 	if (ret >= (int)sizeof(url)) {
-		print_err("%s", "URL buffer too small");
+		print_err("substituter URL too big: %s", substituter);
 		return -ENOMEM;
 	}
 	ret = curl_easy_setopt(cache->curl, CURLOPT_URL, url);
@@ -154,7 +158,20 @@ static int cache_state_remote_read_unwrapped(struct cache *cache,
 	return cache_htab->cache_state;
 }
 
-int cache_state_remote_read(struct cache *cache, const char *output_path)
+static int cache_state_local_read(const char *output_path)
+{
+	int ret = access(output_path, R_OK);
+	if (ret == 0) {
+		return CACHE_LOCAL;
+	} else if (errno == ENOENT) {
+		return CACHE_NONE;
+	} else {
+		print_err("%s", strerror(errno));
+		return -errno;
+	}
+}
+
+static int cache_state_remote_read(struct cache *cache, const char *output_path)
 {
 	int ret;
 	char *hash, **substituter;
@@ -198,4 +215,15 @@ out_free_ch:
 		HASH_ADD_STR(cache->cache_htab, hash, ch);
 		return ch->cache_state;
 	}
+}
+
+int cache_state_read(struct cache *cache, const char *output_path)
+{
+	int ret;
+
+	ret = cache_state_local_read(output_path);
+	if (ret == CACHE_LOCAL)
+		return ret;
+
+	return cache_state_remote_read(cache, output_path);
 }

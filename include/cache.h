@@ -23,4 +23,4 @@ struct cache {
 
 void cache_free(struct cache *cache);
 int cache_init(struct cache *cache);
-int cache_state_remote_read(struct cache *cache, const char *output_path);
+int cache_state_read(struct cache *cache, const char *output_path);
