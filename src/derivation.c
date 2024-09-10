@@ -70,8 +70,10 @@ static int drv_read_unwrapped(const char *drv_path, struct str_htab **str_htab)
 	FILE *fp;
 	int ret;
 	size_t len;
+	char *str, *end, *target, *output_name, *output_path, *list_end;
+
 	struct str_htab *sh = NULL;
-	char *line = NULL, *str, *end, *target;
+	char *line = NULL;
 
 	fp = fopen(drv_path, "r");
 	if (fp == NULL) {
@@ -88,39 +90,64 @@ static int drv_read_unwrapped(const char *drv_path, struct str_htab **str_htab)
 	}
 	str = line;
 
-	/* skip outputs */
+	/* parse outputs */
 	str = strchr(str, '[');
 	if (str == NULL) {
-		goto out_free_line;
 		ret = -EPERM;
+		goto out_free_line;
+	}
+	list_end = strchr(str, ']');
+	if (list_end == NULL) {
+		ret = -EPERM;
+		goto out_free_line;
+	}
+	while (1) {
+		str = strstr(str + 1, "(\"");
+		if (str == NULL || str > list_end)
+			break;
+
+		output_name = str + 2;
+		end = strstr(output_name, "\",\"");
+		if (end == NULL) {
+			ret = -EPERM;
+			goto out_free_line;
+		}
+		*end = '\0';
+
+		output_path = end + 3;
+		end = strstr(output_path, "\"");
+		if (end == NULL) {
+			ret = -EPERM;
+			goto out_free_line;
+		}
+		*end = '\0';
+		str = end + 1;
+
+		printf("\t%s: %s\n", output_name, output_path);
 	}
 
 	/* parse inputDrvs */
-	str = strstr(str + 1, ",[");
+	str = strchr(list_end, '[');
 	if (str == NULL) {
-		goto out_free_line;
 		ret = -EPERM;
-	}
-	end = strstr(str, "],");
-	if (str == NULL) {
 		goto out_free_line;
-		ret = -EPERM;
 	}
-	end[1] = '\0';
-
+	list_end = strstr(str, "],");
+	if (list_end == NULL) {
+		ret = -EPERM;
+		goto out_free_line;
+	}
 
 	while (1) {
 		target = strstr(str, "(\"");
-		if (target == NULL) {
-			goto out_free_line;
-			ret = -EPERM;
-		}
+		if (target == NULL || target > list_end)
+			break;
 		target += 2;
 
 		end = strchr(target, '"');
 		if (end == NULL) {
-			goto out_free_line;
 			ret = -EPERM;
+			goto out_free_line;
 		}
 		*end = '\0';
 		str = end + 1;
@@ -137,7 +164,9 @@ static int drv_read_unwrapped(const char *drv_path, struct str_htab **str_htab)
 		}
 
 		puts(target);
-		drv_read_unwrapped(target, str_htab);
+		ret = drv_read_unwrapped(target, str_htab);
+		if (ret < 0)
+			goto out_free_line;
 	}
 
 out_free_line:
