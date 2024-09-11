@@ -1,1 +1,3 @@
-int drv_read(const char *drv_path);
+#include "cache.h"
+
+int drv_read(struct cache *cache, const char *drv_path);

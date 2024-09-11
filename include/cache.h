@@ -2,10 +2,12 @@
 #include <utarray.h>
 #include <uthash.h>
 
+#ifndef CACHE_H
+
 typedef enum {
-	CACHE_LOCAL = 0,
+	CACHE_NONE = 0,
 	CACHE_REMOTE = 1,
-	CACHE_NONE = 2,
+	CACHE_LOCAL = 2,
 } cache_state_t;
 
 /* cache memoization */
@@ -24,3 +26,6 @@ struct cache {
 void cache_free(struct cache *cache);
 int cache_init(struct cache *cache);
 int cache_state_read(struct cache *cache, const char *output_path);
+
+#define CACHE_H
+#endif
