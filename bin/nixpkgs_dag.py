@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 
+# This script is used to evaluate Nixpkgs and store the relationships between
+# derivations and their input derivations in a directed acyclic graph (DAG).
+# The DAG is represented using an adjacency list and saved in a SQLite db
+
 import re
 import subprocess
 import json
@@ -67,8 +71,13 @@ class drv:
             return match.group(1)
 
 if __name__ == '__main__':
-    cmd = ['nix-eval-jobs', '--flake', 'github:nixos/nixpkgs#legacyPackages.x86_64-linux']
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    cmd = [
+        'nix-eval-jobs',
+        '--flake',
+        'github:nixos/nixpkgs#legacyPackages.x86_64-linux'
+    ]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.DEVNULL)
     if proc.stdout is None:
         raise TypeError
 
