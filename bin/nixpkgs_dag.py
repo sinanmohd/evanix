@@ -5,6 +5,7 @@
 # The DAG is represented using an adjacency list and saved in a SQLite db
 
 import re
+import sys
 import subprocess
 import json
 import sqlite3
@@ -19,13 +20,15 @@ class drv:
         self.cursor = cursor
 
         j = json.loads(drv_string)
-        if 'drvPath' not in j:
-            raise TypeError
+        if 'error' in j:
+            raise TypeError(f'{j['attrPath']}: Failed to evaluate')
+        elif 'drvPath' not in j:
+            raise TypeError(f'{j['attrPath']}: Failed to read drvPath')
 
         pname = self.pname_from_drv_path(j['drvPath'])
         print(pname)
         if pname is None:
-            raise TypeError
+            raise TypeError(f'{j['attrPath']}: Failed to read pname')
         self.pname = pname
 
         for input_drv in j['inputDrvs']:
@@ -58,7 +61,7 @@ class drv:
             VALUES (?)
         """, (pname,))
         if s.lastrowid is None:
-            raise TypeError
+            raise TypeError('Failed to get lastrowid')
 
         return s.lastrowid
 
@@ -79,7 +82,7 @@ if __name__ == '__main__':
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL)
     if proc.stdout is None:
-        raise TypeError
+        raise EOFError('Failed to evaluate nixpkgs')
 
     con = sqlite3.connect('nixpkgs_dag.db')
     cur = con.cursor()
@@ -101,7 +104,7 @@ if __name__ == '__main__':
             d = drv(line.decode('utf-8'), cur)
             d.db_push()
         except Exception as e:
-            print(str(e))
+            print(f'>>> {e}', file=sys.stderr)
 
     con.commit()
     con.close()
