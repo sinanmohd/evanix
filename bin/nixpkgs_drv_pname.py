@@ -9,11 +9,13 @@ import sys
 import subprocess
 import json
 import sqlite3
+import argparse
 from typing import Set
 
 class drv:
+    drv: str
     pname: str
-    input_drvs: Set[str] = set()
+    input_drv_pnames: Set[str] = set()
     cursor: sqlite3.Cursor
 
     def __init__(self, drv_string: str, cursor: sqlite3.Cursor) -> None:
@@ -25,26 +27,34 @@ class drv:
         elif 'drvPath' not in j:
             raise TypeError(f'{j['attrPath']}: Failed to read drvPath')
 
+        self.drv = str(j['drvPath'])
         pname = self.pname_from_drv_path(j['drvPath'])
-        print(pname)
         if pname is None:
             raise TypeError(f'{j['attrPath']}: Failed to read pname')
+        print(pname)
         self.pname = pname
 
         for input_drv in j['inputDrvs']:
             pname = self.pname_from_drv_path(input_drv)
             if pname is not None:
-                self.input_drvs.add(pname)
+                self.input_drv_pnames.add(pname)
 
     def db_push(self):
-        parrent_id = self.rowid_from_pname(self.cursor, self.pname)
-        for input_drv in self.input_drvs:
-            child_id = self.rowid_from_pname(self.cursor, input_drv)
+        pname_id = self.rowid_from_pname(self.cursor, self.pname)
+        ret =self.cursor.execute("""
+            INSERT INTO drvs (drv, pname_id)
+            VALUES (?, ?)
+        """, (self.drv, pname_id))
+        drv_id = ret.lastrowid
+        if drv_id is None:
+            raise ValueError
 
-            self.cursor.execute("""
-                INSERT INTO edges (start, end)
+        for pname in self.input_drv_pnames:
+            pname_id = self.rowid_from_pname(self.cursor, pname)
+            ret = self.cursor.execute("""
+                INSERT INTO input_pnames (drv_id, pname_id)
                 VALUES (?, ?)
-            """, (parrent_id, child_id))
+            """,  (drv_id, pname_id))
 
     @staticmethod
     def rowid_from_pname(cursor: sqlite3.Cursor, pname: str) -> int:
@@ -73,29 +83,47 @@ class drv:
         if match is not None:
             return match.group(1)
 
+def args_get():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-r', '--ref', default="master")
+    parser.add_argument('-a', '--arch', default="x86_64-linux")
+    return parser.parse_args()
+
 if __name__ == '__main__':
+    args = args_get()
     cmd = [
         'nix-eval-jobs',
         '--flake',
-        'github:nixos/nixpkgs#legacyPackages.x86_64-linux'
+        f'github:nixos/nixpkgs/{args.ref}#legacyPackages.{args.arch}'
     ]
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.DEVNULL)
     if proc.stdout is None:
         raise EOFError('Failed to evaluate nixpkgs')
 
-    con = sqlite3.connect('nixpkgs_dag.db')
+    con = sqlite3.connect('drv_pname_dag.db')
     cur = con.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS pnames (
-            pname TEXT NOT NULL UNIQUE
+            pname TEXT NOT NULL UNIQUE,
+            UNIQUE(pname) ON CONFLICT REPLACE
         )
     """)
     cur.execute("""
-        CREATE TABLE IF NOT EXISTS edges (
-            start INTEGER NOT NULL,
-            end NOT NULL,
-            UNIQUE(start, end) ON CONFLICT REPLACE
+        CREATE TABLE IF NOT EXISTS drvs (
+            drv TEXT NOT NULL,
+            pname_id INTEGER NOT NULL,
+            FOREIGN KEY(pname_id) REFERENCES pnames(ROWID),
+            UNIQUE(drv) ON CONFLICT REPLACE
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS input_pnames (
+            drv_id INTEGER NOT NULL,
+            pname_id INTEGER NOT NULL,
+            FOREIGN KEY(drv_id) REFERENCES drvs(ROWID),
+            FOREIGN KEY(pname_id) REFERENCES pnames(ROWID),
+            UNIQUE(drv_id, pname_id) ON CONFLICT REPLACE
         )
     """)
 
