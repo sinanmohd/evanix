@@ -87,6 +87,7 @@ def args_get():
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--ref', default="master")
     parser.add_argument('-a', '--arch', default="x86_64-linux")
+    parser.add_argument('-d', '--db', default="drv_pname_dag.db")
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -101,7 +102,7 @@ if __name__ == '__main__':
     if proc.stdout is None:
         raise EOFError('Failed to evaluate nixpkgs')
 
-    con = sqlite3.connect('drv_pname_dag.db')
+    con = sqlite3.connect(args.db)
     cur = con.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS pnames (
