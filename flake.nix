@@ -38,6 +38,14 @@
               linuxKernel.packages.linux_6_6.perf
               hyperfine
               nix-eval-jobs
+              (python3.withPackages (
+                ps: with ps; [
+                  # scipy
+                  pandas
+                  numpy
+                  matplotlib
+                ]
+              ))
             ];
 
             shellHook = ''
