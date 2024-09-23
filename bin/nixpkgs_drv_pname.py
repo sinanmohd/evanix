@@ -80,6 +80,7 @@ class drv:
     def pname_from_drv_path(drv_path: str) -> str | None:
         f = open(drv_path, 'r')
         drv_string = f.readline()
+        f.close()
         match = re.search('"pname","([^"]+)', drv_string)
         if match is not None:
             return match.group(1)
