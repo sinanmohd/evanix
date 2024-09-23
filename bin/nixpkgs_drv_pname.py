@@ -15,10 +15,11 @@ from typing import Set
 class drv:
     drv: str
     pname: str
-    input_drv_pnames: Set[str] = set()
+    input_drv_pnames: Set[str]
     cursor: sqlite3.Cursor
 
     def __init__(self, drv_string: str, cursor: sqlite3.Cursor) -> None:
+        self.input_drv_pnames = set()
         self.cursor = cursor
 
         j = json.loads(drv_string)
