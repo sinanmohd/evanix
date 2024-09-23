@@ -49,8 +49,13 @@
               linuxKernel.packages.linux_6_6.perf
               hyperfine
               nix-eval-jobs
-              python3
+
               pyright
+              (python3.withPackages (p: [
+                p.scipy
+                p.tqdm
+                p.scikit-learn
+              ]))
             ];
 
             shellHook = ''
