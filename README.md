@@ -1,5 +1,7 @@
 # evanix
-Evanix is a Nix build scheduler designed to maximize throughput given limited resources. The input is a graph G=(V,E), where each vertex v represents a Nix package with a weight w(v) and a profit p(v). The profit for a transitive dependency is 0, while it is 1 for packages that we intend to build. Our objective is to identify a set of vertices that maximizes the profit or the number of packages built. It is crucial that a vertex or package can only be selected if all of its dependencies are also selected. An edge in the graph represents a dependency, with the indegree of a vertex denoting the number of packages that depend on it and the outdegree representing the number of dependencies of the package.
+In evanix we explored making the scheduling of Nix builds more controllable. in particular, we look into implementing constraints such as `–-max-builds` and `–-max-build-time`, which ensure that build operations remain within manageable limits while maximizing throughput.
+
+explore how evanix achieves its goals in this [informative blog](https://www.sinanmohd.com/blog/gsoc/)
 
 # todo
 
