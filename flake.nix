@@ -103,6 +103,9 @@
         in
         {
           nixosTests = pkgs.callPackage ./nixos/tests/all-tests.nix { nix = nixPkg; };
+          doc = {
+            evanix-nixcon24 = pkgs.callPackage ./doc/evanix-nixcon24/package.nix { };
+          };
         }
       );
       checks = forAllSystems (

@@ -1,0 +1,28 @@
+on:
+  workflow_dispatch: # allows manual triggering
+  push:
+    branches:
+      - master
+    paths: ['doc/**']
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths: ['doc/**']
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Install Nix
+      uses: cachix/install-nix-action@v31
+      with:
+        github_access_token: ${{ secrets.GITHUB_TOKEN }}
+        nix_path: nixpkgs=channel:nixos-24.11
+    - run: nix build .#doc.evanix-nixcon24
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      if: github.ref == 'refs/heads/master'
+      with:
+        files: |
+          result*/*.pdf
+        prerelease: true
