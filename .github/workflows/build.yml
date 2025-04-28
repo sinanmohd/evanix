@@ -18,7 +18,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@v16
+      uses: DeterminateSystems/nix-installer-action@v17
     - uses: DeterminateSystems/magic-nix-cache-action@v9
     - name: Build some-pkgs
       run: nix run github:Mic92/nix-fast-build -- --skip-cached --no-nom --flake ".#packages.$(nix eval --raw --impure --expr builtins.currentSystem)"
@@ -32,7 +32,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
     - name: Install Nix
-      uses: DeterminateSystems/nix-installer-action@v16
+      uses: DeterminateSystems/nix-installer-action@v17
     - uses: DeterminateSystems/magic-nix-cache-action@v9
     - name: Build the checks
       run: nix run github:Mic92/nix-fast-build -- --skip-cached --no-nom --flake ".#checks.$(nix eval --raw --impure --expr builtins.currentSystem)"
